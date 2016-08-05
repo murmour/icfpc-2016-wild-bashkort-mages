@@ -109,3 +109,12 @@ let hulls_are_equal (p1: polygon) (p2: polygon) : bool =
         if compare_vertex v1 v2 = 0 then iter (v1s, v2s) else false
   in
   iter (p1, p2)
+
+let line_vertex_relation (l: line) ((x, y): vertex) =
+  let res = compare_num (l.a*x + l.b*y + l.c) num_0 in
+  if res < 0 then
+    `Below
+  else if res > 0 then
+    `Above
+  else
+    `OnLine

@@ -27,3 +27,5 @@ val compute_line: vertex -> vertex -> line
 val hull_area: polygon -> area
 
 val hulls_are_equal: polygon -> polygon -> bool
+
+val line_vertex_relation: line -> vertex -> [ `OnLine | `Above | `Below ]

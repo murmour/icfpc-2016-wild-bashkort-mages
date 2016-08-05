@@ -39,29 +39,36 @@ let gen_dissections (sol: Solution.t) =
             push (line, sol)
           end)))
 
-let apply_dissection target ((l: line), (sol: Solution.t)) : (Solution.t * area) option =
+let apply_dissection target
+    (relation: [ `Above | `Below | `OnLine ])
+    ((l: line), (sol: Solution.t))
+  : (Solution.t * area) option =
   let hull_old = sol |> List.map fst |> Geometry.convex_hull in
   let sol' = sol |> List.map (fun (v1, v0) ->
-    let v1' = Geometry.flip_vertex l v1 in
-    (v1', v0))
+    if Geometry.line_vertex_relation l v1 = relation then
+      let v1' = Geometry.flip_vertex l v1 in
+      (v1', v0)
+    else
+      (v1, v0))
   in
   let hull_new = sol' |> List.map fst |> Geometry.convex_hull in
   let hull_union = Geometry.convex_hull (hull_old @ hull_new) in
-  if Geometry.hulls_are_equal hull_union hull_old then
+  if not (Geometry.hulls_are_equal hull_union hull_old) then
     None
   else
     let hull_union = Geometry.convex_hull (hull_new @ target) in
-    if Geometry.hulls_are_equal hull_union hull_new then
+    if not (Geometry.hulls_are_equal hull_union hull_new) then
       None
     else
       Some (sol', Geometry.hull_area hull_new)
 
 let apply_best_dissection target sol : Solution.t option =
   let sects = gen_dissections sol in
-  let forks = sects |> List.filter_map (apply_dissection target) in
+  let forks1 = sects |> List.filter_map (apply_dissection target `Above) in
+  let forks2 = sects |> List.filter_map (apply_dissection target `Below) in
   let best = ref None in
   let min_area = ref num_1 in
-  forks |> List.iter (fun (sol, area) ->
+  forks1 @ forks2 |> List.iter (fun (sol, area) ->
     if area < !min_area then
       (min_area := area;
        best := Some sol));
@@ -70,12 +77,12 @@ let apply_best_dissection target sol : Solution.t option =
 let apply_all_dissections target sol : unit =
   let sects = gen_dissections sol in
   sects |> List.iter (fun (line, sol) ->
-    Printf.printf "line: a = %s, b = %s, c = %s\n"
+    Printf.printf "line: a = %s, b = %s, c = %s%!\n"
       (string_of_num line.a)
       (string_of_num line.b)
       (string_of_num line.c);
     Drawing.draw_line line;
-    match apply_dissection target (line, sol) with
+    match apply_dissection target `Above (line, sol) with
       | Some (sol', area) ->
           Printf.printf "area: %s\n" (string_of_num area);
           Drawing.draw_solution target sol'
@@ -101,14 +108,14 @@ let () =
   if !interactive then
     Drawing.draw_poly target;
 
-  let fitted_target =
+  let target =
     match Geometry.fit_poly target with
       | Some t -> t
       | None ->
           failwith "Couldn't fit the target!"
   in
   if !interactive then
-    Drawing.draw_poly fitted_target;
+    Drawing.draw_poly target;
 
   apply_all_dissections target Solution.default;
 
