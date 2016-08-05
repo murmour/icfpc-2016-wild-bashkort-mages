@@ -119,11 +119,11 @@ class TileWidget(QtGui.QWidget):
                 n = getint()
                 return Poly([getpt(f.readline()) for _ in range(n)])
             
-            allpts = []
+            allpts = set()
             
             def readedge():
                 t = list(map(getpt, f.readline().split()))
-                allpts.extend(t)
+                allpts.update(t)
                 return Edge(t[0], t[1])
                 
             
@@ -133,26 +133,43 @@ class TileWidget(QtGui.QWidget):
             n_edges = getint()
             
             self.edges = [readedge() for _ in range(n_edges)]
+            allpts = list(allpts)            
             p0 = allpts[0]
-            allpts = []
-            for p in self.polys:
-                p.floatize(p0)
-            for e in self.edges:
-                e.floatize(p0)
-                allpts.append(e.a)
-                allpts.append(e.b)
- 
-            self.minx0 = min([a[0] for a in allpts])
-            self.maxx0 = max([a[0] for a in allpts])
-            self.miny0 = min([a[1] for a in allpts])
-            self.maxy0 = max([a[1] for a in allpts])
-            
+                        
             #print(self.minx)
             #print(self.maxx)
             #if self.minx == self.maxx:
             #    self.maxx += 1    
             self.has_data = True
-            #print(self.polys[0].pts)                
+            #print(self.polys[0].pts)
+        
+        if not os.path.exists(fname + 'd'):        
+            with io.open(fname + 'd', 'wt') as f:
+                f.write('%d\n' % len(allpts))
+                for p in allpts:
+                    t = transp(p, p0)
+                    f.write('%.15f %.15f\n' % (t[0], t[1]))
+                f.write('%d\n' % len(self.edges))
+                for e in self.edges:
+                    f.write('%d %d\n' % (allpts.index(e.a), allpts.index(e.b) ))
+        
+        #allpts2 = []
+        for p in self.polys:
+            p.floatize(p0)
+        for e in self.edges:
+            e.floatize(p0)
+            
+        allpts2 = [transp(p, p0) for p in allpts]
+        
+        self.minx0 = min([a[0] for a in allpts2])
+        self.maxx0 = max([a[0] for a in allpts2])
+        self.miny0 = min([a[1] for a in allpts2])
+        self.maxy0 = max([a[1] for a in allpts2])
+        self.allpts2 = allpts2
+            
+            
+            
+                            
 
     
     def mousePressEvent(self, ev):
@@ -207,6 +224,14 @@ class TileWidget(QtGui.QWidget):
         p.setBrush(QtCore.Qt.NoBrush)
         for e in self.edges:
             p.drawLine(self.transform(e.a), self.transform(e.b))
+            
+        # vertices
+        p.setPen(QtGui.QColor('blue'))
+        for i, pp in enumerate(self.allpts2):
+            a = self.transform(pp)
+            #p.drawText(a, str(i))
+            p.drawText(int(a.x() + 4), int(a.y() + 4), str(i))
+            
 
 class MoveViewer(QtGui.QMainWindow):
 
