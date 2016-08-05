@@ -183,6 +183,7 @@ class TileWidget(QtGui.QWidget):
         x, y = p
         rx = self.x0 + (self.x1 - self.x0) * (x - self.minx) / (self.maxx - self.minx)
         ry = self.y0 + (self.y1 - self.y0) * (y - self.miny) / (self.maxy - self.miny)
+        ry = self.height() - ry
         return QtCore.QPointF(rx, ry)
 
     def paintEvent(self, ev):
