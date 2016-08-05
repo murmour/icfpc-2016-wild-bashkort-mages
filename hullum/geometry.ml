@@ -1,6 +1,7 @@
 
 open Batteries
 open Num
+open Utils
 
 
 type vertex = num * num
@@ -20,7 +21,7 @@ let compare_vertex (x1, y1) (x2, y2) =
         etc
 
 let does_cw (ox, oy) (ax, ay) (bx, by) =
-  (ax - ox) * (by - oy) - (ay - oy) * (bx - ox) <= num_of_int 0
+  (ax - ox) * (by - oy) - (ay - oy) * (bx - ox) <= num_0
 
 let convex_hull points : polygon =
   let sorted = List.sort compare_vertex points in
@@ -52,8 +53,7 @@ let gen_poly_rotations (p: polygon) : polygon list =
         (x * rot_x, y * rot_y)))
 
 let vertex_fits (x, y) : bool =
-  x >= num_of_int 0 && x <= num_of_int 1 &&
-  y >= num_of_int 0 && y <= num_of_int 1
+  x >= num_0 && x <= num_1 && y >= num_0 && y <= num_1
 
 let poly_fits p : bool =
   p |> List.for_all vertex_fits
@@ -75,8 +75,8 @@ let fit_poly p : polygon option =
 let flip_vertex (l: line) ((x, y): vertex) : vertex =
   let d = l.a*x + l.b*y + l.c in
   let ab2 = l.a*l.a + l.b*l.b in
-  let x' = x + num_of_int (-2) * ((l.a*d)/ab2) in
-  let y' = y + num_of_int (-2) * ((l.b*d)/ab2) in
+  let x' = x + num_neg2 * ((l.a*d)/ab2) in
+  let y' = y + num_neg2 * ((l.b*d)/ab2) in
   (x', y')
 
 let flip_poly (l: line) p =
@@ -84,3 +84,9 @@ let flip_poly (l: line) p =
 
 let get_line_y_by_x (l: line) x =
   (minus_num (l.a*x) - l.c) / l.b
+
+let compute_line ((x1, y1): vertex) ((x2, y2): vertex) : line =
+  let a = y2 - y1 in
+  let b = x1 - x2 in
+  let c = minus_num (a*x1) - b*y1 in
+  { a; b; c }
