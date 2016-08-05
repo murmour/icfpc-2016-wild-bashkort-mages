@@ -16,6 +16,7 @@ import io#, time
 #import re
 import common as cmn
 
+from facets import Edge, transp, splitEdges
 import fractions
 
 class Stats:
@@ -51,9 +52,6 @@ class Stats:
         
 st = Stats()
 
-def transp(p, p0):
-    return (float(p[0] - p0[0]), float(p[1] - p0[1]))
-
 class Poly:
     def __init__(self, pts):
         self.pts = pts
@@ -66,15 +64,6 @@ class Poly:
     def floatize(self, p0):
         self.pts = [transp(p, p0) for p in self.pts]
          
-        
-class Edge:
-    def __init__(self, a, b):
-        self.a = a
-        self.b = b
-        
-    def floatize(self, p0):
-        self.a = transp(self.a, p0)
-        self.b = transp(self.b, p0)
 
 class InfoPanel(QtGui.QDockWidget):
 
@@ -143,14 +132,17 @@ class TileWidget(QtGui.QWidget):
             self.has_data = True
             #print(self.polys[0].pts)
         
-        if not os.path.exists(fname + 'd'):        
+        if not os.path.exists(fname + 'd'):
+        #if True:        
             with io.open(fname + 'd', 'wt') as f:
                 f.write('%d\n' % len(allpts))
                 for p in allpts:
                     t = transp(p, p0)
                     f.write('%.15f %.15f\n' % (t[0], t[1]))
-                f.write('%d\n' % len(self.edges))
-                for e in self.edges:
+                    
+                xedges = splitEdges(allpts, self.edges)                    
+                f.write('%d\n' % len(xedges))
+                for e in xedges:
                     f.write('%d %d\n' % (allpts.index(e.a), allpts.index(e.b) ))
         
         #allpts2 = []
