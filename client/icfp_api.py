@@ -24,6 +24,21 @@ def api_get_request(url) -> str:
     return res.decode('utf-8')
 
 
+def send_solution(id) -> str:
+    res = subprocess.check_output(
+        ['curl',
+         '--compressed',
+         '-L',
+         "-X", "POST",
+         '-H', 'Expect:',
+         '-H', 'X-API-Key: %s' % api_key,
+         '-F', 'problem_id=%d' % id,
+         '-F', 'solution_spec=@../data/solutions/%d.out' % id,
+         'http://2016sv.icfpcontest.org/api/solution/submit' ])
+    time.sleep(2)
+    return json.loads(res.decode('utf-8'))
+
+
 def get_hello() -> json:
     print('Hello, world...')
     res = api_get_request('http://2016sv.icfpcontest.org/api/hello')
@@ -70,4 +85,4 @@ def write_latest_problem_specs() -> json:
 
 
 if __name__ == '__main__':
-    print(write_latest_problem_specs())
+    print(int(sys.argv[1]))
