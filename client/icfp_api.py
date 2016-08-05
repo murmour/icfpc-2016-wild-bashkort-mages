@@ -39,6 +39,21 @@ def send_solution(id, fname) -> str:
     return json.loads(res.decode('utf-8'))
 
 
+def send_problem(timestamp, fname) -> str:
+    res = subprocess.check_output(
+        ['curl',
+         '--compressed',
+         '-L',
+         "-X", "POST",
+         '-H', 'Expect:',
+         '-H', 'X-API-Key: %s' % api_key,
+         '-F', 'solution_spec=@%s' % fname,
+         '-F', 'publish_time=%d' % timestamp,
+         'http://2016sv.icfpcontest.org/api/problem/submit' ])
+    time.sleep(2)
+    return json.loads(res.decode('utf-8'))
+
+
 def get_hello() -> json:
     print('Hello, world...')
     res = api_get_request('http://2016sv.icfpcontest.org/api/hello')
