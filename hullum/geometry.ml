@@ -23,7 +23,7 @@ let compare_vertex (x1, y1) (x2, y2) =
         etc
 
 let does_cw (ox, oy) (ax, ay) (bx, by) =
-  (ax - ox) * (by - oy) - (ay - oy) * (bx - ox) <= num_0
+  (ax - ox) * (by - oy) - (ay - oy) * (bx - ox) <=/ num_0
 
 let convex_hull points : polygon =
   let sorted = List.sort compare_vertex points in
@@ -55,7 +55,7 @@ let gen_poly_rotations (p: polygon) : polygon list =
         (x * rot_x, y * rot_y)))
 
 let vertex_fits (x, y) : bool =
-  x >= num_0 && x <= num_1 && y >= num_0 && y <= num_1
+  x >=/ num_0 && x <=/ num_1 && y >=/ num_0 && y <=/ num_1
 
 let poly_fits p : bool =
   p |> List.for_all vertex_fits
