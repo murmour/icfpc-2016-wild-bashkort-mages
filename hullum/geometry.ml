@@ -23,7 +23,7 @@ let compare_vertex (x1, y1) (x2, y2) =
         etc
 
 let does_cw (ox, oy) (ax, ay) (bx, by) =
-  (ax - ox) * (by - oy) - (ay - oy) * (bx - ox) <=/ num_0
+  (ax - ox) * (by - oy) <=/ (ay - oy) * (bx - ox)
 
 let convex_hull points : polygon =
   let sorted = List.sort compare_vertex points in
