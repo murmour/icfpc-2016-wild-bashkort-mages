@@ -31,3 +31,11 @@ let draw_skeleton sk =
     set_line_width 1;
     sk |> List.iter (fun (v1, v2) ->
       draw_poly_line [| conv_vertex v1; conv_vertex v2 |]))
+
+let draw_hull hull =
+  with_canvas (fun () ->
+    set_color white;
+    set_line_width 1;
+    List.combine hull (List.tl hull @ [ List.hd hull ]) |>
+    List.iter (fun (v1, v2) ->
+      draw_poly_line [| conv_vertex v1; conv_vertex v2 |]))

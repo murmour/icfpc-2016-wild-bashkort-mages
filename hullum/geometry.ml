@@ -16,11 +16,10 @@ let compare_vertex (x1, y1) (x2, y2) =
     | etc ->
         etc
 
-
 let does_cw (ox, oy) (ax, ay) (bx, by) =
   (ax -/ ox) */ (by -/ oy) -/ (ay -/ oy) */ (bx -/ ox) <=/ num_of_int 0
 
-let convex_hull points =
+let convex_hull points : polygon =
   let sorted = List.sort compare_vertex points in
   let rsorted = List.rev sorted in
   let drop_first l = match l with [] -> [] | h :: t -> t in
