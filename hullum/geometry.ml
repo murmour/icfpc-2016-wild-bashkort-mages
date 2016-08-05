@@ -12,6 +12,8 @@ type polygon = vertex list
 
 type line = { a: Num.num; b: Num.num; c: Num.num }
 
+type area = num
+
 
 let compare_vertex (x1, y1) (x2, y2) =
   match compare_num x1 x2 with
@@ -90,3 +92,20 @@ let compute_line ((x1, y1): vertex) ((x2, y2): vertex) : line =
   let b = x1 - x2 in
   let c = minus_num (a*x1) - b*y1 in
   { a; b; c }
+
+let hull_area (p: polygon) : area =
+  let sum = ref num_0 in
+  List.combine p (rotate p) |> List.iter (fun ((x1, y1), (x2, y2)) ->
+    sum := !sum + x1*y2 - x2*y1);
+  num_1_by_2 * abs_num !sum
+
+let hulls_are_equal (p1: polygon) (p2: polygon) : bool =
+  let rec iter = function
+    | ([], []) ->
+        true
+    | (_, []) | ([], _) ->
+        false
+    | (v1 :: v1s, v2 :: v2s) ->
+        if compare_vertex v1 v2 = 0 then iter (v1s, v2s) else false
+  in
+  iter (p1, p2)

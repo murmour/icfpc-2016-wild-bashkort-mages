@@ -7,6 +7,8 @@ type polygon = vertex list
 
 type line = { a: Num.num; b: Num.num; c: Num.num }
 
+type area = Num.num
+
 
 val compare_vertex: vertex -> vertex -> int
 
@@ -21,3 +23,7 @@ val flip_vertex: line -> vertex -> vertex
 val get_line_y_by_x: line -> Num.num -> Num.num
 
 val compute_line: vertex -> vertex -> line
+
+val hull_area: polygon -> area
+
+val hulls_are_equal: polygon -> polygon -> bool
