@@ -8,3 +8,6 @@ _build
 *.ncb
 [Dd]ebug/
 [Rr]elease/
+
+
+*.py[co]
