@@ -12,7 +12,9 @@ let read_file ~fname : t =
   let scan_int () = Scanf.bscanf cin "%d " identity in
 
   let scan_vertex () : Geometry.vertex =
-    (Num.of_int 0, Num.of_int 0)
+    Scanf.bscanf cin "%s " (fun s0 ->
+      let (s1, s2) = String.split ~by:"," s0 in
+      (Num.num_of_string s1, Num.num_of_string s2))
   in
 
   let npolys = scan_int () in
