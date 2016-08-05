@@ -4,7 +4,7 @@ open Batteries
 
 type t = silhouette * skeleton
 and silhouette = Geometry.polygon list
-and skeleton = Geometry.line list
+and skeleton = Geometry.segment list
 
 
 let read_file ~fname : t =
@@ -24,8 +24,8 @@ let read_file ~fname : t =
       scan_vertex ()))
   in
 
-  let nlines = scan_int () in
-  let skeleton = List.init nlines (fun _ ->
+  let nsegments = scan_int () in
+  let skeleton = List.init nsegments (fun _ ->
     let a = scan_vertex () in
     let b = scan_vertex () in
     (a, b))

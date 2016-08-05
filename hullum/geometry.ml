@@ -5,9 +5,11 @@ open Num
 
 type vertex = num * num
 
-type line = vertex * vertex
+type segment = vertex * vertex
 
 type polygon = vertex list
+
+type line = { a: Num.num; b: Num.num; c: Num.num }
 
 
 let compare_vertex (x1, y1) (x2, y2) =
@@ -18,7 +20,7 @@ let compare_vertex (x1, y1) (x2, y2) =
         etc
 
 let does_cw (ox, oy) (ax, ay) (bx, by) =
-  (ax -/ ox) */ (by -/ oy) -/ (ay -/ oy) */ (bx -/ ox) <=/ num_of_int 0
+  (ax - ox) * (by - oy) - (ay - oy) * (bx - ox) <= num_of_int 0
 
 let convex_hull points : polygon =
   let sorted = List.sort compare_vertex points in
@@ -47,11 +49,11 @@ let gen_poly_rotations (p: polygon) : polygon list =
   |> List.map vertex_of_ints
   |> List.map (fun (rot_x, rot_y) ->
       p |> List.map (fun (x, y) ->
-        (x */ rot_x, y */ rot_y)))
+        (x * rot_x, y * rot_y)))
 
 let vertex_fits (x, y) : bool =
-  x >=/ num_of_int 0 && x <=/ num_of_int 1 &&
-  y >=/ num_of_int 0 && y <=/ num_of_int 1
+  x >= num_of_int 0 && x <= num_of_int 1 &&
+  y >= num_of_int 0 && y <= num_of_int 1
 
 let poly_fits p : bool =
   p |> List.for_all vertex_fits
@@ -60,7 +62,7 @@ let shift_poly p : polygon =
   let min_x = p |> List.map fst |> List.reduce min_num in
   let min_y = p |> List.map snd |> List.reduce min_num in
   p |> List.map (fun (x, y) ->
-    (x -/ min_x, y -/ min_y))
+    (x - min_x, y - min_y))
 
 let fit_poly p : polygon option =
   Return.label (fun l ->
@@ -69,3 +71,16 @@ let fit_poly p : polygon option =
       if poly_fits p then
         Return.return l (Some p));
     None)
+
+let flip_vertex (l: line) ((x, y): vertex) : vertex =
+  let d = l.a*x + l.b*y + l.c in
+  let ab2 = l.a*l.a + l.b*l.b in
+  let x' = x + num_of_int (-2) * ((l.a*d)/ab2) in
+  let y' = y + num_of_int (-2) * ((l.b*d)/ab2) in
+  (x', y')
+
+let flip_poly (l: line) p =
+  p |> List.map (flip_vertex l)
+
+let get_line_y_by_x (l: line) x =
+  (minus_num (l.a*x) - l.c) / l.b
