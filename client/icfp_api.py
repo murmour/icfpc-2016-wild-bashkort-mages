@@ -24,7 +24,7 @@ def api_get_request(url) -> str:
     return res.decode('utf-8')
 
 
-def send_solution(id) -> str:
+def send_solution(id, fname) -> str:
     res = subprocess.check_output(
         ['curl',
          '--compressed',
@@ -33,7 +33,7 @@ def send_solution(id) -> str:
          '-H', 'Expect:',
          '-H', 'X-API-Key: %s' % api_key,
          '-F', 'problem_id=%d' % id,
-         '-F', 'solution_spec=@../data/solutions/%d.out' % id,
+         '-F', 'solution_spec=@%s' % fname,
          'http://2016sv.icfpcontest.org/api/solution/submit' ])
     time.sleep(2)
     return json.loads(res.decode('utf-8'))
@@ -84,5 +84,34 @@ def write_latest_problem_specs() -> json:
             f.write(spec)
 
 
+solution_name_rx = re.compile('solution_'
+                              '(?P<set_id>[0-9]+)_'
+                              r'(?P<tag>[a-z0-9\-]+)_'
+                              '(?P<version>[0-9]+).out')
+
+def parse_solution_fname(fname):
+    print(fname)
+    m = re.match(solution_name_rx, fname)
+    return { 'fname': '../data/solutions/' + fname,
+             'set_id': int(m.group('set_id')),
+             'tag': '%s_%s' % (m.group('tag'), m.group('version')) }
+
+
+def filter_solutions(tag):
+    files = [ parse_solution_fname(f) for f in listdir("../data/solutions") ]
+    files = [ f for f in files if (tag == None or f['tag'] == tag) ]
+    files.sort(key = lambda f: f['set_id'])
+    return files
+
+
+def send_all_solutions(tag):
+    filtered = filter_solutions(tag)
+    for f in filtered:
+        response = send_solution(f['set_id'], f['fname'])
+        if response is None:
+            return
+        print(response)
+
+
 if __name__ == '__main__':
-    print(send_solution(int(sys.argv[1])))
+    print(filter_solutions(sys.argv[1]))
