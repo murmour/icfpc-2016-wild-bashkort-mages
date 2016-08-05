@@ -16,7 +16,7 @@ import io#, time
 #import re
 import common as cmn
 
-#import fractions
+import fractions
 
 class Stats:
     def __init__(self):
@@ -47,9 +47,12 @@ class Stats:
         #self.check2(t[0] // g)
         #self.check2(t[1] // g)
         
-        return t[0] / t[1]     
+        return fractions.Fraction(t[0], t[1])     
         
-st = Stats()        
+st = Stats()
+
+def transp(p, p0):
+    return (float(p[0] - p0[0]), float(p[1] - p0[1]))
 
 class Poly:
     def __init__(self, pts):
@@ -58,12 +61,20 @@ class Poly:
         for a, b in zip(pts, pts[1:] + [pts[0]]):
             sum += a[0] * b[1] - a[1] * b[0]
         #print(sum)
-        self.hole = sum < 0 
+        self.hole = sum < 0
+        
+    def floatize(self, p0):
+        self.pts = [transp(p, p0) for p in self.pts]
+         
         
 class Edge:
     def __init__(self, a, b):
         self.a = a
         self.b = b
+        
+    def floatize(self, p0):
+        self.a = transp(self.a, p0)
+        self.b = transp(self.b, p0)
 
 class InfoPanel(QtGui.QDockWidget):
 
@@ -101,7 +112,7 @@ class TileWidget(QtGui.QWidget):
                 return int(f.readline())
             
             def getpt(s):
-                s = s.split(',')
+                s = s.split(',')                
                 return (st.parseNum(s[0]), st.parseNum(s[1]))
             
             def readpoly():
@@ -122,11 +133,20 @@ class TileWidget(QtGui.QWidget):
             n_edges = getint()
             
             self.edges = [readedge() for _ in range(n_edges)]
+            p0 = allpts[0]
+            allpts = []
+            for p in self.polys:
+                p.floatize(p0)
+            for e in self.edges:
+                e.floatize(p0)
+                allpts.append(e.a)
+                allpts.append(e.b)
+ 
+            self.minx0 = min([a[0] for a in allpts])
+            self.maxx0 = max([a[0] for a in allpts])
+            self.miny0 = min([a[1] for a in allpts])
+            self.maxy0 = max([a[1] for a in allpts])
             
-            self.minx = min([a[0] for a in allpts])
-            self.maxx = max([a[0] for a in allpts])
-            self.miny = min([a[1] for a in allpts])
-            self.maxy = max([a[1] for a in allpts])
             #print(self.minx)
             #print(self.maxx)
             #if self.minx == self.maxx:
@@ -157,6 +177,21 @@ class TileWidget(QtGui.QWidget):
         self.x1 = self.width() - border
         self.y0 = border
         self.y1 = self.height() - border
+        
+        self.minx = self.minx0
+        self.miny = self.miny0
+        self.maxx = self.maxx0
+        self.maxy = self.maxy0
+        t = (self.x1 - self.x0) / (self.y1 - self.y0) * (self.maxy - self.miny)
+        if t > self.maxx - self.minx:
+            t = (t - self.maxx + self.minx) / 2
+            self.minx -= t
+            self.maxx += t
+        else:
+            t = (self.y1 - self.y0) / (self.x1 - self.x0) * (self.maxx - self.minx)
+            t = (t - self.maxy + self.miny) / 2
+            self.miny -= t
+            self.maxy += t
         
         p = QtGui.QPainter(self)        
         # polys
