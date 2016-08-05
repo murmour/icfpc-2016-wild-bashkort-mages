@@ -6,7 +6,8 @@ open Geometry
 
 
 let interactive = ref false
-let problem_file = ref ""
+let input_file = ref ""
+let output_file = ref ""
 let dissect_step = num_of_int 10
 let iterations = ref 10
 
@@ -104,11 +105,15 @@ let () =
        " Interactive mode");
       ("-iterations", Arg.Int (fun i -> iterations := i),
        " Iteration count");
+      ("-in", Arg.String (fun s -> input_file := s),
+       " Problem");
+      ("-out", Arg.String (fun s -> output_file := s),
+       " Solution");
     ])
-    (fun s -> problem_file := s)
+    (fun _ -> ())
     ("Usage: " ^ Sys.argv.(0) ^ "[options]");
 
-  let (sl, sk) = Problem.read_file ~fname:!problem_file in
+  let (sl, sk) = Problem.read_file ~fname:!input_file in
   (* if !interactive then *)
   (*   Drawing.draw_skeleton sk; *)
   if !interactive then
@@ -130,4 +135,4 @@ let () =
   let sol = solve_loop 0 target Solution.default in
   if !interactive then
     Drawing.draw_solution target sol;
-  ()
+  Solution.write_file ~fname:!output_file sol
