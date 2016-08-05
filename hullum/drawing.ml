@@ -94,6 +94,6 @@ let draw_solution (target: polygon) (sol: Solution.t) =
 
     set_color white;
     set_line_width 1;
-    let poly = sol |> List.map fst in
+    let poly = sol |> List.map fst |> convex_hull in
     List.combine poly (rotate poly) |> List.iter (fun (v1, v2) ->
       draw_poly_line [| conv_vertex v1; conv_vertex v2 |]))

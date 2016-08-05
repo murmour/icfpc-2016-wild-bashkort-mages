@@ -42,7 +42,7 @@ let gen_dissections (sol: Solution.t) =
 let apply_dissection target
     (relation: [ `Above | `Below | `OnLine ])
     ((l: line), (sol: Solution.t))
-  : (Solution.t * area) option =
+  : (Solution.t * line * area) option =
   let hull_old = sol |> List.map fst |> Geometry.convex_hull in
   let sol' = sol |> List.map (fun (v1, v0) ->
     if Geometry.line_vertex_relation l v1 = relation then
@@ -60,7 +60,7 @@ let apply_dissection target
     if not (Geometry.hulls_are_equal hull_union hull_new) then
       None
     else
-      Some (sol', Geometry.hull_area hull_new)
+      Some (sol', l, Geometry.hull_area hull_new)
 
 let apply_best_dissection target sol : Solution.t option =
   let sects = gen_dissections sol in
@@ -68,7 +68,7 @@ let apply_best_dissection target sol : Solution.t option =
   let forks2 = sects |> List.filter_map (apply_dissection target `Below) in
   let best = ref None in
   let min_area = ref num_2 in
-  forks1 @ forks2 |> List.iter (fun (sol, area) ->
+  forks1 @ forks2 |> List.iter (fun (sol, line, area) ->
     if area </ !min_area then
       (min_area := area;
        best := Some sol));
@@ -76,18 +76,16 @@ let apply_best_dissection target sol : Solution.t option =
 
 let apply_all_dissections target sol : unit =
   let sects = gen_dissections sol in
-  sects |> List.iter (fun (line, sol) ->
-    Printf.printf "line: a = %s, b = %s, c = %s%!\n"
+  let forks1 = sects |> List.filter_map (apply_dissection target `Above) in
+  let forks2 = sects |> List.filter_map (apply_dissection target `Below) in
+  forks1 @ forks2 |> List.iter (fun (sol, line, area) ->
+    Printf.printf "line: a = %s, b = %s, c = %s; area = %s%!\n"
       (string_of_num line.a)
       (string_of_num line.b)
-      (string_of_num line.c);
+      (string_of_num line.c)
+      (string_of_num area);
     Drawing.draw_line line;
-    match apply_dissection target `Below (line, sol) with
-      | Some (sol', area) ->
-          Printf.printf "area: %s\n" (string_of_num area);
-          Drawing.draw_solution target sol'
-      | None ->
-          ())
+    Drawing.draw_solution target sol)
 
 let () =
   Arg.parse (Arg.align
