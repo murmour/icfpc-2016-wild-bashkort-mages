@@ -8,7 +8,7 @@ open Geometry
 let interactive = ref false
 let problem_file = ref ""
 let dissect_step = num_of_int 10
-let iterations = 1
+let iterations = ref 10
 
 
 let gen_dissections (sol: Solution.t) =
@@ -87,11 +87,23 @@ let apply_all_dissections target sol : unit =
     Drawing.draw_line line;
     Drawing.draw_solution target sol)
 
+let rec solve_loop (n: int) target sol : Solution.t =
+  Printf.printf "Iteration %d...%!\n" n;
+  if n = !iterations then
+    sol
+  else match apply_best_dissection target sol with
+    | Some sol ->
+        solve_loop (Pervasives.succ n) target sol
+    | None ->
+        failwith (Printf.sprintf "Unable to find solution on iteration %d!" n)
+
 let () =
   Arg.parse (Arg.align
     [
       ("-interactive", Arg.Unit (fun () -> interactive := true),
        " Interactive mode");
+      ("-iterations", Arg.Int (fun i -> iterations := i),
+       " Iteration count");
     ])
     (fun s -> problem_file := s)
     ("Usage: " ^ Sys.argv.(0) ^ "[options]");
@@ -115,14 +127,7 @@ let () =
   if !interactive then
     Drawing.draw_poly target;
 
-  apply_all_dissections target Solution.default;
-
-  let sol =
-    match apply_best_dissection target Solution.default with
-      | Some sol ->
-          sol
-      | None ->
-          failwith "Unable to find solution!"
-  in
+  let sol = solve_loop 0 target Solution.default in
   if !interactive then
-    Drawing.draw_solution target sol
+    Drawing.draw_solution target sol;
+  ()
