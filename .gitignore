@@ -1,1 +1,4 @@
 data
+*.byte
+*.native
+_build
