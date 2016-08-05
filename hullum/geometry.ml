@@ -1,4 +1,5 @@
 
+open Batteries
 open Num
 
 
@@ -37,3 +38,34 @@ let convex_hull points : polygon =
   let upper = part_hull rsorted in
 
   (List.rev (drop_first lower)) @ (List.rev upper)
+
+let vertex_of_ints (x, y) =
+  (num_of_int x, num_of_int y)
+
+let gen_poly_rotations (p: polygon) : polygon list =
+  [ (1, 1); (1, -1); (-1, 1); (-1, -1) ]
+  |> List.map vertex_of_ints
+  |> List.map (fun (rot_x, rot_y) ->
+      p |> List.map (fun (x, y) ->
+        (x */ rot_x, y */ rot_y)))
+
+let vertex_fits (x, y) : bool =
+  x >=/ num_of_int 0 && x <=/ num_of_int 1 &&
+  y >=/ num_of_int 0 && y <=/ num_of_int 1
+
+let poly_fits p : bool =
+  p |> List.for_all vertex_fits
+
+let shift_poly p : polygon =
+  let min_x = p |> List.map fst |> List.reduce min_num in
+  let min_y = p |> List.map snd |> List.reduce min_num in
+  p |> List.map (fun (x, y) ->
+    (x -/ min_x, y -/ min_y))
+
+let fit_poly p : polygon option =
+  Return.label (fun l ->
+    gen_poly_rotations p |> List.iter (fun (p: polygon) ->
+      let p = shift_poly p in
+      if poly_fits p then
+        Return.return l (Some p));
+    None)
