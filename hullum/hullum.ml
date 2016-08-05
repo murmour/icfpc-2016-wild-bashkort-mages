@@ -22,7 +22,7 @@ let gen_dissections (sol: Solution.t) =
          push (`Existing, (x1, y1));
          let x0 = ref (x1 + slope_x) in
          let y0 = ref (y1 + slope_y) in
-         while !x0 <> x2 || !y0 <> y2 do
+         while !x0 <>/ x2 || !y0 <>/ y2 do
            push (`New, (!x0, !y0));
            x0 := !x0 + slope_x;
            y0 := !y0 + slope_y;
@@ -67,9 +67,9 @@ let apply_best_dissection target sol : Solution.t option =
   let forks1 = sects |> List.filter_map (apply_dissection target `Above) in
   let forks2 = sects |> List.filter_map (apply_dissection target `Below) in
   let best = ref None in
-  let min_area = ref num_1 in
+  let min_area = ref num_2 in
   forks1 @ forks2 |> List.iter (fun (sol, area) ->
-    if area < !min_area then
+    if area </ !min_area then
       (min_area := area;
        best := Some sol));
   !best
@@ -82,7 +82,7 @@ let apply_all_dissections target sol : unit =
       (string_of_num line.b)
       (string_of_num line.c);
     Drawing.draw_line line;
-    match apply_dissection target `Above (line, sol) with
+    match apply_dissection target `Below (line, sol) with
       | Some (sol', area) ->
           Printf.printf "area: %s\n" (string_of_num area);
           Drawing.draw_solution target sol'

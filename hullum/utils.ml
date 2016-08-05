@@ -5,6 +5,9 @@ let num_0 =
 let num_1 =
   Num.num_of_int 1
 
+let num_2 =
+  Num.num_of_int 2
+
 let num_neg1 =
   Num.num_of_int (-1)
 
