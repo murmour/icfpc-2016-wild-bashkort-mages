@@ -109,8 +109,8 @@ let () =
     ("Usage: " ^ Sys.argv.(0) ^ "[options]");
 
   let (sl, sk) = Problem.read_file ~fname:!problem_file in
-  if !interactive then
-    Drawing.draw_skeleton sk;
+  (* if !interactive then *)
+  (*   Drawing.draw_skeleton sk; *)
   if !interactive then
     Drawing.draw_silhouette sl;
 
