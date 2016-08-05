@@ -2,3 +2,9 @@ data
 *.byte
 *.native
 _build
+*.suo
+*.user
+*.sln.docstates
+*.ncb
+[Dd]ebug/
+[Rr]elease/
