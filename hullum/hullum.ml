@@ -11,8 +11,7 @@ let dissect_step = num_of_int 10
 let iterations = ref 10
 
 
-let gen_dissections (sol: Solution.t) =
-  let hull = sol |> List.map fst |> Geometry.convex_hull in
+let gen_dissections (sol: Solution.t) hull =
   let vertexes =
     collect (fun push ->
       let hull = List.tl hull in
@@ -39,11 +38,10 @@ let gen_dissections (sol: Solution.t) =
             push (line, sol)
           end)))
 
-let apply_dissection target
+let apply_dissection target hull_old
     (relation: [ `Above | `Below | `OnLine ])
     ((l: line), (sol: Solution.t))
   : (Solution.t * line * area) option =
-  let hull_old = sol |> List.map fst |> Geometry.convex_hull in
   let sol' = sol |> List.map (fun (v1, v0) ->
     if Geometry.line_vertex_relation l v1 = relation then
       let v1' = Geometry.flip_vertex l v1 in
@@ -63,9 +61,10 @@ let apply_dissection target
       Some (sol', l, Geometry.hull_area hull_new)
 
 let apply_best_dissection target sol : Solution.t option =
-  let sects = gen_dissections sol in
-  let forks1 = sects |> List.filter_map (apply_dissection target `Above) in
-  let forks2 = sects |> List.filter_map (apply_dissection target `Below) in
+  let hull = sol |> List.map fst |> Geometry.convex_hull in
+  let sects = gen_dissections sol hull in
+  let forks1 = sects |> List.filter_map (apply_dissection target hull `Above) in
+  let forks2 = sects |> List.filter_map (apply_dissection target hull `Below) in
   let best = ref None in
   let min_area = ref num_2 in
   forks1 @ forks2 |> List.iter (fun (sol, line, area) ->
@@ -75,9 +74,10 @@ let apply_best_dissection target sol : Solution.t option =
   !best
 
 let apply_all_dissections target sol : unit =
-  let sects = gen_dissections sol in
-  let forks1 = sects |> List.filter_map (apply_dissection target `Above) in
-  let forks2 = sects |> List.filter_map (apply_dissection target `Below) in
+  let hull = sol |> List.map fst |> Geometry.convex_hull in
+  let sects = gen_dissections sol hull in
+  let forks1 = sects |> List.filter_map (apply_dissection target hull `Above) in
+  let forks2 = sects |> List.filter_map (apply_dissection target hull `Below) in
   forks1 @ forks2 |> List.iter (fun (sol, line, area) ->
     Printf.printf "line: a = %s, b = %s, c = %s; area = %s%!\n"
       (string_of_num line.a)
