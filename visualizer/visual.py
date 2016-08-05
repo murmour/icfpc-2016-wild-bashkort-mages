@@ -133,7 +133,7 @@ class TileWidget(QtGui.QWidget):
             n_edges = getint()
             
             self.edges = [readedge() for _ in range(n_edges)]
-            allpts = list(allpts)            
+            allpts = sorted(list(allpts))            
             p0 = allpts[0]
                         
             #print(self.minx)
