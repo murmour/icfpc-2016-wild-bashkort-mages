@@ -85,4 +85,4 @@ def write_latest_problem_specs() -> json:
 
 
 if __name__ == '__main__':
-    print(int(sys.argv[1]))
+    print(send_solution(int(sys.argv[1])))
