@@ -24,8 +24,17 @@ let compare_vertex (x1, y1) (x2, y2) =
     | etc ->
         etc
 
-let does_cw (ox, oy) (ax, ay) (bx, by) =
-  (ax - ox) * (by - oy) <=/ (ay - oy) * (bx - ox)
+let print_vertex (x, y) =
+  Printf.sprintf "%s,%s" (string_of_num x) (string_of_num y)
+
+let triple_orientation (ox, oy) (ax, ay) (bx, by) : [ `CW | `CCW | `COLL ] =
+  let res = compare_num ((ax - ox) * (by - oy)) ((ay - oy) * (bx - ox)) in
+  if res = 0 then
+    `COLL
+  else if res < 0 then
+    `CW
+  else
+    `CCW
 
 let convex_hull points : polygon =
   let sorted = List.sort compare_vertex points in
@@ -34,7 +43,7 @@ let convex_hull points : polygon =
 
   let rec clean x l =
     match l with
-      | a :: (b :: _ as rest) when does_cw b a x ->
+      | a :: (b :: _ as rest) when triple_orientation b a x <> `CCW ->
           clean x rest
       | _ ->
           l
@@ -121,6 +130,27 @@ let line_vertex_relation (l: line) ((x, y): vertex) =
   else
     `OnLine
 
+let dot_product ((ax, ay): vertex) ((bx, by): vertex) : num =
+  ax*by - ay*bx
+
+let vec ((ax, ay): vertex) ((bx, by): vertex) =
+  (bx - ax, by - ay)
+
+let segment_intersection (s1: segment) (s2: segment) : vertex option =
+  let (a, b) = s1 and (c, d) = s2 in
+  let (ax, ay) = a and (bx, by) = b and (cx, cy) = c and (dx, dy) = d in
+  if not ((gt_num (dot_product (vec c b) (vec c d) *
+                   dot_product (vec c d) (vec c a)) num_0) &&
+          (gt_num (dot_product (vec a c) (vec a b) *
+                   dot_product (vec a b) (vec a d)) num_0)) then
+    None
+  else
+    let dt = (bx - ax)*(cy - dy) - (cx - dx)*(by - ay) in
+    let t = (num_1 // dt) * ((cx - ax)*(cy - dy) - (cx - dx)*(cy - ay)) in
+    let x = ax + (bx - ax)*t in
+    let y = ay + (by - ay)*t in
+    Some (x, y)
+
 let triangulate_hull (h: polygon) : triangle list =
   collect (fun push ->
     match h with
@@ -136,7 +166,7 @@ let triangulate_hull (h: polygon) : triangle list =
 
 let triangle_is_negative ((a, b, c): triangle) : bool =
   let (x1, y1) = a and (x2, y2) = b and (x3, y3) = c in
-  lt_num ((x1 - x3) * (y2 - y3)) ((x2 - x3) * (y1 - y3))
+  le_num ((x1 - x3) * (y2 - y3)) ((x2 - x3) * (y1 - y3))
 
 let point_in_triangle ((a, b, c): triangle) (v: vertex) : bool =
   let b1 = triangle_is_negative (v, a, b) in
@@ -144,10 +174,20 @@ let point_in_triangle ((a, b, c): triangle) (v: vertex) : bool =
   let b3 = triangle_is_negative (v, c, a) in
   (b1 = b2) && (b2 = b3)
 
+let get_hull_inter_points (h1: polygon) (h2: polygon) : vertex list =
+  let h1 = List.tl h1 and h2 = List.tl h2 in
+  collect (fun push ->
+    List.combine h1 (rotate h1) |> List.iter (fun seg1 ->
+      List.combine h2 (rotate h2) |> List.iter (fun seg2 ->
+        segment_intersection seg1 seg2 |> Option.may push)))
+
 let intersect_hulls h1 h2 : polygon option =
+  let inter_points = get_hull_inter_points h1 h2 in
+  inter_points |> List.iter (fun v ->
+    Printf.printf "%s\n" (print_vertex v));
   let set1 = triangulate_hull h1 in
   let set2 = triangulate_hull h2 in
-  let h3 = h1 @ h2 |> List.filter (fun v ->
+  let h3 = h1 @ h2 @ inter_points |> List.filter (fun v ->
     set1 |> List.exists (fun t -> point_in_triangle t v) &&
     set2 |> List.exists (fun t -> point_in_triangle t v))
   in
