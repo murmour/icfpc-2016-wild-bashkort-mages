@@ -15,6 +15,7 @@ import json, sys, copy, os, re
 import io#, time
 #import re
 import common as cmn
+import facets
 
 from facets import Edge, transp, splitEdges
 import fractions
@@ -134,16 +135,21 @@ class TileWidget(QtGui.QWidget):
         
         if not os.path.exists(fname + 'd'):
         #if True:        
-            with io.open(fname + 'd', 'wt') as f:
+            with io.open(fname + 'd2', 'wt') as f:
                 f.write('%d\n' % len(allpts))
                 for p in allpts:
                     t = transp(p, p0)
                     f.write('%.15f %.15f\n' % (t[0], t[1]))
                     
-                xedges = splitEdges(allpts, self.edges)                    
+                xedges = splitEdges(allpts, self.edges)
+                for e in xedges:
+                    facets.getDistance(e.a, e.b)
+                                    
                 f.write('%d\n' % len(xedges))
                 for e in xedges:
-                    f.write('%d %d\n' % (allpts.index(e.a), allpts.index(e.b) ))
+                    u, v = allpts.index(e.a), allpts.index(e.b)
+                    print('%d %d %s' % (u, v, facets.getDistance(e.a, e.b)))
+                    f.write('%d %d\n' % (u, v))
         
         #allpts2 = []
         for p in self.polys:
@@ -243,7 +249,14 @@ class MoveViewer(QtGui.QMainWindow):
             self.restoreState(t, 0)
 
         self.data_edit = QtGui.QComboBox()
-        self.data_edit.addItems(['Task %d' % (i+1) for i in range(101)])
+        
+        fnames = [f for f in os.listdir('../data/problems') if f.endswith('.in')]        
+        self.idxs = [int(f.split('.')[0]) for f in fnames]
+        self.idxs.sort()
+        print('%d problems' % len(self.idxs))
+        
+        
+        self.data_edit.addItems(['Task %d' % i for i in self.idxs])
         self.data_edit.currentIndexChanged.connect(self.loadFile)
         
         self.info_box = InfoPanel(self)
@@ -251,7 +264,7 @@ class MoveViewer(QtGui.QMainWindow):
         
                 
         self.mview = TileWidget(self)
-        self.loadFile(0)
+        self.loadFile(self.idxs.index(27))
                 
         layout = cmn.VBox([
                            self.data_edit,
@@ -264,8 +277,8 @@ class MoveViewer(QtGui.QMainWindow):
         self.data_edit.setFocus()
         
     def loadFile(self, idx):
-        if idx >= 0:
-            fname = '../data/problems/%d.in' % (idx+1)
+        if idx >= 0:            
+            fname = '../data/problems/%d.in' % (self.idxs[idx])
             self.mview.load(fname)
             self.mview.update()
             with io.open(fname) as f:
