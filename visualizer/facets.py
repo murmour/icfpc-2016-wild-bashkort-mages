@@ -210,6 +210,22 @@ def get_square(t):
         seen.add(x)
     return x
 
+def get_square2(t):
+    if t == 0 or t == 1:
+        return t
+    l = 0
+    r = t
+    while l + 1 < r:
+        m = (l + r) // 2
+        if m * m > t:
+            r = m
+        else:
+            l = m
+    if l * l == t:
+        return l
+    return None
+
+
 class FrameEdge:
     def __init__(self, idxs, pts):
         a, b = idxs
@@ -232,6 +248,13 @@ def getDistance(v1, v2):
 def getfirst(s):
     for x in s:
         return x
+    
+def getsecond(s):
+    t = 0
+    for x in s:
+        t += 1
+        if t == 2:
+            return x
     
 def in_square(p):
     return 0 < p[0] < 1 and 0 < p[1] < 1
@@ -290,26 +313,49 @@ def testQuad(paths, verts, interiors):
     
     for ip in interiors:
         c = verts[ip.v]
-        assert(1 < len(ip.others) < 3)
-        ia = ip.others[0]
-        ib = ip.others[1]
-        a = verts[ia]
-        b = verts[ib]
-        r1s = getDistance2(c, a)
-        r2s = getDistance2(c, b)
-        if len(new_pts[ia]) > 1:
-            print(ia)
-            print(new_pts[ia])
-        #assert(len(new_pts[ia]) == 1)
-        assert(len(new_pts[ib]) == 1)
-        pts = getDistPoints(getfirst(new_pts[ia]), r1s, getfirst(new_pts[ib]), r2s)
-        pts = [p for p in pts if in_square(p)]
-        assert(pts)
-        print(pts)
-        assert(not new_pts[ip.v])
-        new_pts[ip.v].add(pts[0])
+        if not (1 < len(ip.others) < 3):
+            print(ip.others)
+        #assert(1 < len(ip.others) < 3)
+        #ia = ip.others[0]
+        #ib = ip.others[1]
         
-    
+        def getInt(ia, ib):        
+            a = verts[ia]
+            b = verts[ib]
+            r1s = getDistance2(c, a)
+            r2s = getDistance2(c, b)
+            if len(new_pts[ia]) > 1:
+                print(ia)
+                print(new_pts[ia])            
+            #assert(len(new_pts[ia]) == 1)
+            if len(new_pts[ib]) > 1:
+                print(ib, ip.v)
+                print(c)
+                print(new_pts[ib])
+            #assert(len(new_pts[ib]) == 1)
+            pts = getDistPoints(getfirst(new_pts[ia]), r1s, getfirst(new_pts[ib]), r2s)
+            pts = [p for p in pts if in_square(p)]
+            assert(pts)
+            print('intpts=%s' % pts)
+            
+            #if len(pts) > 1: 
+            #    #assert(pts[0] == pts[1])
+            #    if pts[0] != pts[1]:
+            #        return []
+            #return pts[0]
+            return pts
+        
+        assert(not new_pts[ip.v])    
+        for ia, ib in itertools.combinations(ip.others, 2):
+            #new_pts[ip.v].add(getInt(ia, ib))
+            new_pts[ip.v].update(getInt(ia, ib))
+            
+        if len(new_pts[ip.v]) == 4:
+            t = sorted(new_pts[ip.v])
+            new_pts[ip.v] = {t[0], t[3]}
+                        
+            
+    #print(new_pts)
     for i, t in enumerate(new_pts):
         if not t:
             print('Vertex %d is missing' % i)
@@ -343,13 +389,13 @@ def extractFacets(pts, edges):
             for a, b in zip(poly[1:], poly[2:]):
                 va = vec(p0, pts[a])
                 vb = vec(p0, pts[b])
-                t += abs(crossp(va, vb))
+                ac = abs(crossp(va, vb))
+                if ac == 0:
+                    return None
+                t += ac
             sum += t
         if sum != Fraction(2):
-            return None
-        
-        
-        
+            return None        
         return res
                 
     
@@ -402,16 +448,33 @@ def extractFacets(pts, edges):
             cur.append(best)
             v = best
         res.append(cur)
+
+manual = []
+
+def checkUnique(pts):
+    pts = sorted(pts)
+    for a, b in zip(pts, pts[1:]):
+        if a == b:
+            print(a)
+            assert(a != b)
+            
         
 def extractFacetsX(pts0, pts, edges):
+    
+    if manual:
+        return manual
+    #return [[5,4,3,7], [4,8,3], [3, 8, 9, 6, 1, 0], [3, 0, 2, 7]]
+    #return [[1, 4, 7, 6, 0], [7, 5, 6], [5, 9, 10, 6], [6, 10, 8, 3, 2, 0]]
     n = len(pts)
     seen = set()
     sets = []
+    #checkUnique(pts)
     print('pts=%s' % printverts(pts))
     for a, b in edges:
         if a in seen or b in seen:
             continue
         v1 = vec(pts[a], pts[b])
+        assert(v1[0] != 0 or v1[0] != 0)
         t = set()
         for i in range(n):
             if i != a and i != b and crossp(vec(pts[a], pts[i]), v1) == 0:
@@ -443,6 +506,7 @@ def extractFacetsX(pts0, pts, edges):
             for u, v in t:
                 eee.append((u, v))
         #saveFacets(pts0, eee, 'facets.json')
+        #print('eee=%s' % eee)
         ret = extractFacets(pts0, eee)
         if ret:
             saveFacets(pts0, eee, 'facets.json')
@@ -453,18 +517,22 @@ def extractFacetsX(pts0, pts, edges):
                 
 
 def getPartitions(a):
-    print('a = %s' % a)
+    #print('a = %s' % a)
     n = len(a)
     used = [False] * n
     res = []
     cur = []
-    def go(i, last):
+    
+    def add(cur):
+        res.append([(a[q], a[p]) for q, p in cur])
+    
+    def go(i, last, skip):
         j = i
         while j < n and used[j]:
             j += 1
         if j == n:
-            res.append([(a[q], a[p]) for q, p in cur])
-            return
+            add(cur)
+            return        
         if j > last:
             cur.append((last, j))
         used[j] = True
@@ -474,23 +542,58 @@ def getPartitions(a):
                     continue
                 cur.append((j, k))
                 used[k] = True
-                go(j+1, max(last, k))
+                go(j+1, max(last, k), skip)
                 cur.pop()
                 used[k] = False            
         else:
-            res.append([(a[q], a[p]) for q, p in cur])
+            add(cur)
         if j > last:
             cur.pop()
+        if skip:
+            go(j+1, last, skip-1)
         used[j] = False
+    
+    if n > 4:
+        aa = list(range(1, n-2))#  a[1:-2]
+        for t in getPartitions(aa):
+            q = t + [(0, n-2), (0, n-1)]            
+            add(q)            
+            #print(res[-1])
+    
+    if len(a) == 3:
+        add([(0, 1), (0, 2)])
+        #add([(1, 0), (1, 2)])
+        add([(0, 2), (1, 2)])
         
-    go(0, 1)
+    go(0, 1, kSkip)    
+    # todo: optimize out invalid
     return res        
 
 
-
+def optimizeSol(np, verts, facets):
+    n = len(np)
+    assert(n == len(verts))
+    counts = [0] * n
+    for fac in facets:
+        for v in fac:
+            counts[v] += 1
+    pairs = [(t, i) for i, t in enumerate(counts)]
+    pairs.sort(reverse=True)
+    imap = { i1 : i for i, (_, i1) in enumerate(pairs) }
+    np2 = [np[i] for _, i in pairs]
+    verts2 = [verts[i] for _, i in pairs]
+    
+    def trans(f):
+        return [imap[v] for v in f]
+     
+    facets2 = [trans(f) for f in facets]
+    #print(pairs)    
+    return np2, verts2, facets2
+    
 
 def saveSol(idx, np, verts, facets):
-    fname = '../data/solutions/%d.out' % idx
+    fname = '../data/solutions/solution_%d_interior_%d.out' % (idx, kVersion)    
+    np, verts, facets = optimizeSol(np, verts, facets)
     with io.open(fname, 'wt') as f:
         f.write('%d\n' % len(np))
         for v in np:
@@ -510,7 +613,11 @@ def saveFacets(np2, edges2, fname):
     j = {'v': [(float(a), float(b)) for a, b in np2], 'e': edges2}
     with io.open(fname, 'wt') as f: 
         f.write(json.dumps(j))
-                
+
+#def duplicateX(sqv, tgtv, edges):
+    
+
+
 def test(idx):
     verts = loadVerts(idx)
     pat = loadP(idx)
@@ -519,7 +626,7 @@ def test(idx):
         print('No way!')
     for q in pat.quads:
         print('Trying %s' % q.idxs)
-        print('verts=%s' % printverts(verts))
+        #print('verts=%s' % printverts(verts))
         np = testQuad([pat.paths[i] for i in q.idxs], verts, q.interiors)
         if not np:
             continue
@@ -534,7 +641,7 @@ def test(idx):
                 emap[i] = len(verts2)
                 vidx[v] = len(verts2)
                 verts2.append(verts[i])
-                np2.append(v)       
+                np2.append(v)
         
         frame = { fe.idxs for fe in np.fr_edges }
         edges2 = [(vidx[fe.pts[0]], vidx[fe.pts[1]]) for fe in np.fr_edges]
@@ -552,21 +659,37 @@ def test(idx):
         saveFacets(np2, edges2, 'facets.json')
         
         facets = extractFacetsX(np2, verts2, edges2)
+        
+        
         #return
         saveSol(idx, np2, verts2, facets)
         print('Done!')
         break
 
+def approx_sqrt(x):
+    t = sqrt(float(x))
+    res = Fraction.from_float(t)
+    res.limit_denominator(10000000000000000000000000000000000000000000000000000000000000000000)
+    return res
+
 def fr_sqrt(x):
     #return sqrt(float(x))
     #print(x)
-    t1 = get_square(x.numerator)
+    assert(x >= 0)
+    t1 = get_square2(x.numerator)
+    if t1 == None:        
+        print(x.numerator)
+        return approx_sqrt(x)    
     assert(t1 != None) 
-    t2 = get_square(x.denominator)
+    t2 = get_square2(x.denominator)
+    if t2 == None:
+        print(x.denominator)
+        return approx_sqrt(x)
     assert(t2 != None)
-    return Fraction(t1, t2)    
+    return Fraction(t1, t2)  
 
-def getDistPoints(p1, r1s, p2, r2s):    
+def getDistPoints(p1, r1s, p2, r2s):
+    print(p1, r1s, p2, r2s)
     dx = Fraction(p2[0] - p1[0])
     dy = Fraction(p2[1] - p1[1])
     d2 = dx * dx + dy * dy
@@ -587,6 +710,9 @@ def test_distpoints():
     q = getDistPoints((2, 1), 2 * 2, (7, 5), 5 * 5)
     print(q)
 
+kVersion = 13
+kSkip = 0
+
 def test_facets():
     global kSz
     kSz = 6
@@ -598,11 +724,16 @@ def test_facets():
 if __name__ == '__main__':
     #test_facets()
     #test_distpoints()
-    test(16)
+    #manual.extend([[12,13,6,5], [5,6,7,9], [9,7,0,1], [13,3,2,6], [6,2,4,8,11,7], [7,11,10,0]]) # 23 todo: fix
+    #manual.extend([[5,4, 8,6], [4,7,8], [7,2,1,3,8], [6,8,3,0]]) # 45 todo: fix 
+    #manual.extend([[7,9,5], [9,12,11,6,3,5], [3,6,4], [4,6,2], [2,6,11,10,1], [1,10,8,0]]) # 56 todo: fix
+    test(27)
+    exit()
     #p = getPartitions([0, 1, 2, 3, 4, 6, 8, 9])
     #print([(0, 8), (1, 6), (2, 9), (3, 4)] in p)
-    #for i in range(73, 102):
-    #    if os.path.exists('../data/problems/%d.p' % i):
-    #        test(i)
+    for i in range(70, 102):
+        print(' === %d === ' % i)
+        if os.path.exists('../data/problems/%d.p' % i):
+            test(i)
     
     
