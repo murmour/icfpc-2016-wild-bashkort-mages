@@ -7,7 +7,7 @@ open Geometry
 
 let interactive = ref false
 let input_file = ref ""
-let output_file = ref ""
+let output_file = ref "stdout"
 let dissect_step = num_of_int 10
 let iterations = ref 10
 
@@ -128,7 +128,7 @@ let recover_facets (sol: Solution.t) : Solution.facet list =
   main_facet :: !facets
 
 let rec solve_loop (n: int) target sol : Solution.t =
-  Printf.printf "Iteration %d...%!\n" n;
+  Printf.eprintf "Iteration %d...%!\n" n;
   if n = !iterations then
     sol
   else match apply_best_dissection target sol with
@@ -179,5 +179,4 @@ let () =
   if !interactive then
     Drawing.draw_poly_list facets;
 
-  if !output_file <> "" then
-    Solution.write_file ~fname:!output_file sol facets
+  Solution.write_file ~fname:!output_file sol facets

@@ -15,7 +15,8 @@ type facet = Geometry.polygon
 
 
 let write_file ~fname sol facets =
-  let cout = open_out fname in
+  let cout = if fname = "stdout" then stdout else open_out fname in
+
   let print_vertex (x, y) =
     fprintf cout "%s,%s " (Num.string_of_num x) (Num.string_of_num y)
   in
