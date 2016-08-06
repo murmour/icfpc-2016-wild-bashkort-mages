@@ -56,6 +56,7 @@ double pi2 = pi*0.5;
 int T = 10;
 int P = 10000;
 int Strip = -1;
+int Fours = 10000;
 clock_t start_t;
 
 bool debug = true;
@@ -96,8 +97,8 @@ void p_search( double L )
 		}
 	if ( L > 1.-eps ) return;
 
-	if (clock()-start_t > T*CLOCKS_PER_SEC) exit(1);
-	if (SZ(paths) > P) exit(2);
+	if (clock()-start_t > T*CLOCKS_PER_SEC) return;
+	if (SZ(paths) > P) return;
 
 	int v = cur_p[c_sz-1];
 	int pre = cur_p[c_sz-2];
@@ -221,7 +222,8 @@ void sol()
 					FA(d,paths) if (factor[d]==1) if (p_next( paths[c], paths[d] ))
 						if (p_next( paths[d], paths[a] ))
 						{
-							if (clock()-start_t > T*CLOCKS_PER_SEC) exit(1);
+							if (clock()-start_t > T*CLOCKS_PER_SEC) goto out;
+							if (SZ(Map) > Fours) goto out;
 
 							//cout << a << " " << b << " " << c << " " << d << "\n";
 							VI ind = VI(4);
@@ -248,6 +250,8 @@ void sol()
 								Map[ mi ] = ind;
 						}
 	}
+
+out:;
 
 	if (SZ( Map )==0) exit(3);
 
@@ -342,7 +346,7 @@ int main(int argc, char** argv)
 {
 	System::ParseArgs(argc, argv);
 
-	int a = 28;
+	int a = 1067;
 	start_t = clock();
 	//FOR(a,98,101) if (a!=24 && a!=30 && a!=32 && a!=33 && a!=83 && a!=84 && a!=85 && a!=86 && a!=88 &&
 	//	a!=89 && a!=90 && a!=92 && a!=101)
@@ -357,7 +361,8 @@ int main(int argc, char** argv)
 				<<  "  out - output file\n"
 				<<  "  t   - time limit (default " << T << "s)\n"
 				<<  "  p   - limit for number of paths (default " << P << ")\n"
-				<<  "  s   - limit for strip\n";
+				<<  "  s   - limit for strip\n"
+				<<  "  f   - limit for number of fours (default " << Fours << ")\n";
 			cout << "Exit(1) = Time Limit Exceeded\n";
 			cout << "Exit(2) = Paths Limit Exceeded\n";
 			cout << "Exit(3) = No borders found\n";
@@ -401,6 +406,10 @@ int main(int argc, char** argv)
 		if (System::HasArg("s"))
 		{
 			Strip = atoi(System::GetArgValue("s").c_str());
+		}
+		if (System::HasArg("f"))
+		{
+			Fours = atoi(System::GetArgValue("f").c_str());
 		}
 
 		paths.clear();
