@@ -47,3 +47,6 @@ val line_vertex_relation: line -> vertex -> line_relation
 val intersect_hulls: polygon -> polygon -> polygon option
 
 val cross: vector -> vector -> Num.num
+
+val line_hull_intersection: line -> polygon ->
+  [ `New of vertex | `Existing of vertex ] list

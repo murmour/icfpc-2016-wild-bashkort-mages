@@ -80,13 +80,26 @@ let apply_approx_dissection target (st: State.t) : State.t option =
   choose_best_dissection (forks1 @ forks2)
 
 let apply_exact_dissection target (st: State.t) : State.t option =
-  let forks =
+  let hull = st.points |> Geometry.convex_hull in
+  let sects =
     let target = List.tl target in
     List.combine target (rotate target) |> List.map (fun (v1, v2) ->
       let line = Geometry.compute_line v1 v2 in
-      st)                        (* todo *)
+      let inter = Geometry.line_hull_intersection line hull in
+      let rec append_new = function
+        | [] ->
+            st
+        | `New v :: vs ->
+            let st = append_new vs in
+            { st with points = v :: st.points }
+        | `Existing v :: vs ->
+            append_new vs
+      in
+      (line, append_new inter))
   in
-  choose_best_dissection forks
+  let forks1 = sects |> List.filter_map (apply_dissection target hull Above) in
+  let forks2 = sects |> List.filter_map (apply_dissection target hull Below) in
+  choose_best_dissection (forks1 @ forks2)
 
 let approximate ~iterations ~target : State.t =
   let rec iter n (st: State.t) : State.t =

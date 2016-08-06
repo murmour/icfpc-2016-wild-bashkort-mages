@@ -226,3 +226,28 @@ let intersect_hulls h1 h2 : polygon option =
     None
   else
     Some h3
+
+let gen_huge_segment (l: line) : segment =
+  if l.a =/ num_0 then
+    let y0 = (minus_num l.c) / l.b in
+    ((num_0, y0), (num_1, y0))
+  else if l.b =/ num_0 then
+    let x0 = (minus_num l.c) / l.a in
+    ((x0, num_0), (x0, num_1))
+  else
+    ((num_0, get_line_y_by_x l num_0),
+     (num_1, get_line_y_by_x l num_1))
+
+let point_on_line ((x, y): vertex) (l: line) : bool =
+  l.a*x + l.b*y + l.c =/ num_0
+
+let line_hull_intersection (l: line) (h: polygon) =
+  let seg1 = gen_huge_segment l in
+  collect (fun push ->
+    let h = List.tl h in
+    List.combine h (rotate h) |> List.iter (fun ((v3, v4) as seg2) ->
+      if point_on_line v3 l then
+        push (`Existing v3)
+      else
+        segment_intersection seg1 seg2 |> Option.may (fun v ->
+          push (`New v))))
