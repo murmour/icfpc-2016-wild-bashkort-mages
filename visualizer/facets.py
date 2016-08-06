@@ -16,6 +16,18 @@ kSz = 1
 def transp(p, p0):
     return (float(p[0] - p0[0]), float(p[1] - p0[1]))
 
+kFailNoQuads = 'NoQuads'
+kFailFacetsNotFound = 'NoFacets'
+kFailNegativeRoot = 'NegRoot'
+kFailIrrationalRoot = 'IrrRoot'
+kFailMissingVertices = 'MissVer'
+
+class ESolverFailure(Exception):
+    
+    def __init__(self, msg):
+        Exception.__init__()
+        self.msg = msg
+
 class Edge:
     def __init__(self, a, b):
         self.a = a
@@ -24,6 +36,18 @@ class Edge:
     def floatize(self, p0):
         self.a = transp(self.a, p0)
         self.b = transp(self.b, p0)
+        
+class Poly:
+    def __init__(self, pts):
+        self.pts = pts
+        sum = 0
+        for a, b in zip(pts, pts[1:] + [pts[0]]):
+            sum += a[0] * b[1] - a[1] * b[0]
+        #print(sum)
+        self.hole = sum < 0
+        
+    def floatize(self, p0):
+        self.pts = [transp(p, p0) for p in self.pts]
 
 def is_external(a, b, xlen):
     ax, ay = a
@@ -550,7 +574,8 @@ def extractFacetsX(pts0, pts, edges, xlen):
             saveFacets(pts0, eee, 'facets.json')
             return ret    
     
-    assert(False)
+    #assert(False)
+    raise ESolverFailure(kFailFacetsNotFound)
     
                 
 
@@ -635,8 +660,11 @@ def optimizeSol(np, verts, facets):
 #    for  
     
 
+def getSolName(idx):
+    return '../data/solutions/solution_%d_interior_%d.out' % (idx, kVersion)
+
 def saveSol(idx, np, verts, facets):
-    fname = '../data/solutions/solution_%d_interior_%d.out' % (idx, kVersion)    
+    fname = getSolName(idx)    
     np, verts, facets = optimizeSol(np, verts, facets)
     
     sz = [0]
@@ -739,6 +767,7 @@ def test(idx):
     edges = loadEdges(idx)
     if not pat.quads:
         print('No way!')
+        raise ESolverFailure(kFailNoQuads)
     for q in pat.quads:
         print('Trying %s' % q.idxs)
         #print('verts=%s' % printverts(verts))
@@ -793,6 +822,8 @@ def test(idx):
         saveSol(idx, np2, verts2, facets)
         print('Done!')
         break
+    
+    raise ESolverFailure(kFailMissingVertices)
 
 def approx_sqrt(x):
     t = sqrt(float(x))
@@ -803,11 +834,14 @@ def approx_sqrt(x):
 def fr_sqrt(x):
     #return sqrt(float(x))
     #print(x)
-    assert(x >= 0)
+    if x < 0:
+        raise ESolverFailure(kFailNegativeRoot)
     t1 = get_square2(x.numerator)
     if t1 == None:        
         print(x.numerator)
-        return approx_sqrt(x)    
+        return approx_sqrt(x)
+    if t1 == None:
+        raise ESolverFailure(kFailIrrationalRoot)
     assert(t1 != None) 
     t2 = get_square2(x.denominator)
     if t2 == None:

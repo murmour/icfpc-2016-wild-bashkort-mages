@@ -17,7 +17,7 @@ import io#, time
 import common as cmn
 import facets
 
-from facets import Edge, transp, splitEdges
+from facets import Edge, transp, splitEdges, Poly
 import fractions
 
 class Stats:
@@ -53,18 +53,6 @@ class Stats:
         
 st = Stats()
 
-class Poly:
-    def __init__(self, pts):
-        self.pts = pts
-        sum = 0
-        for a, b in zip(pts, pts[1:] + [pts[0]]):
-            sum += a[0] * b[1] - a[1] * b[0]
-        #print(sum)
-        self.hole = sum < 0
-        
-    def floatize(self, p0):
-        self.pts = [transp(p, p0) for p in self.pts]
-         
 
 class InfoPanel(QtGui.QDockWidget):
 
@@ -142,9 +130,7 @@ class TileWidget(QtGui.QWidget):
                     f.write('%.15f %.15f\n' % (t[0], t[1]))
                     
                 xedges = splitEdges(allpts, self.edges)
-                for e in xedges:
-                    facets.getDistance(e.a, e.b)
-                                    
+                
                 f.write('%d\n' % len(xedges))
                 for e in xedges:
                     u, v = allpts.index(e.a), allpts.index(e.b)
