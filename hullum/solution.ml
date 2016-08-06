@@ -11,8 +11,10 @@ type t =
     prev: (Geometry.line * t) option;
   }
 
+type facet = Geometry.polygon
 
-let write_file ~fname sol =
+
+let write_file ~fname sol facets =
   let cout = open_out fname in
   let print_vertex (x, y) =
     fprintf cout "%s,%s " (Num.string_of_num x) (Num.string_of_num y)
@@ -22,13 +24,14 @@ let write_file ~fname sol =
   sol.source |> List.iter print_vertex;
   fprintf cout "\n";
 
-  fprintf cout "1\n";
-  let hull = sol.dest |> Geometry.convex_hull in
-  fprintf cout "%d " (List.length hull);
-  hull |> List.tl |> List.iter (fun v ->
-    let i = List.index_ofq v sol.source |> Option.get in
-    fprintf cout "%d " i);
-  fprintf cout "\n";
+  fprintf cout "%d\n" (List.length facets);
+  facets |> List.iter (fun f ->
+    let f = List.tl f in
+    fprintf cout "%d " (List.length f);
+    f |> List.iter (fun v ->
+      let i = List.index_ofq v sol.source |> Option.get in
+      fprintf cout "%d " i);
+    fprintf cout "\n");
 
   sol.dest |> List.iter print_vertex;
   fprintf cout "\n"

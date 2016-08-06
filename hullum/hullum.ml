@@ -92,6 +92,41 @@ let apply_all_dissections target (sol: Solution.t) : unit =
     Drawing.draw_line line;
     Drawing.draw_solution target sol)
 
+module VSet = Set.Make (struct
+    type t = vertex
+    let compare = compare_vertex
+  end)
+
+let get_flipped_facet (l: line) (sol: Solution.t) (prev: Solution.t) : Solution.facet =
+  let moved = collect (fun push ->
+    sol.dest |> List.iter (fun v ->
+      if Geometry.line_vertex_relation l v = `OnLine then
+        push v);
+    let set = VSet.of_list sol.dest in
+    prev.dest |> List.iter (fun v ->
+      if not (VSet.mem v set) then
+        push v))
+  in
+  Geometry.convex_hull moved
+
+let recover_facets (sol: Solution.t) : Solution.facet list =
+  let facets = ref [] in
+
+  let rec iter (sol: Solution.t) =
+    sol.prev |> Option.may (fun (line, sol_prev) ->
+      let f1 = get_flipped_facet line sol sol_prev in
+      let f1' = flip_poly line f1 in
+      !facets |> List.iter (fun f2 ->
+        Geometry.intersect_hulls f1' f2 |> Option.may (fun f3 ->
+          facets := flip_poly line f3 :: !facets));
+      facets := f1 :: !facets;
+      iter sol_prev)
+  in
+  iter sol;
+
+  let main_facet = Geometry.convex_hull sol.dest in
+  main_facet :: !facets
+
 let rec solve_loop (n: int) target sol : Solution.t =
   Printf.printf "Iteration %d...%!\n" n;
   if n = !iterations then
@@ -140,9 +175,9 @@ let () =
   if !interactive then
     Drawing.draw_solution target sol;
 
-  let facets = Facets.recover sol in
+  let facets = recover_facets sol in
   if !interactive then
-    Drawing.draw_facets facets;
+    Drawing.draw_poly_list facets;
 
   if !output_file <> "" then
-    Solution.write_file ~fname:!output_file sol
+    Solution.write_file ~fname:!output_file sol facets

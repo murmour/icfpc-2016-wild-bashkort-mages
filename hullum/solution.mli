@@ -6,7 +6,9 @@ type t =
     prev: (Geometry.line * t) option;
   }
 
+type facet = Geometry.polygon
 
-val write_file: fname: string -> t -> unit
+
+val write_file: fname: string -> t -> facet list -> unit
 
 val default: t

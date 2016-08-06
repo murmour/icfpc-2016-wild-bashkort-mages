@@ -29,3 +29,5 @@ val hull_area: polygon -> area
 val hulls_are_equal: polygon -> polygon -> bool
 
 val line_vertex_relation: line -> vertex -> [ `OnLine | `Above | `Below ]
+
+val intersect_hulls: polygon -> polygon -> polygon option

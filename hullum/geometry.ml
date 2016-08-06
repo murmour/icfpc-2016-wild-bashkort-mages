@@ -14,6 +14,8 @@ type line = { a: Num.num; b: Num.num; c: Num.num }
 
 type area = num
 
+type triangle = vertex * vertex * vertex
+
 
 let compare_vertex (x1, y1) (x2, y2) =
   match compare_num x1 x2 with
@@ -118,3 +120,35 @@ let line_vertex_relation (l: line) ((x, y): vertex) =
     `Above
   else
     `OnLine
+
+let triangulate_hull (h: polygon) : triangle list =
+  collect (fun push ->
+    match h with
+      | v1 :: rest ->
+          let rec iter = function
+            | v2 :: ((v3 :: _) as rest) ->
+                push (v1, v2, v3);
+                iter rest
+            | _ -> ()
+          in
+          iter rest
+      | _ -> ())
+
+let triangle_is_negative ((a, b, c): triangle) : bool =
+  let (x1, y1) = a and (x2, y2) = b and (x3, y3) = c in
+  lt_num ((x1 - x3) * (y2 - y3)) ((x2 - x3) * (y1 - y3))
+
+let point_in_triangle ((a, b, c): triangle) (v: vertex) : bool =
+  let b1 = triangle_is_negative (v, a, b) in
+  let b2 = triangle_is_negative (v, b, c) in
+  let b3 = triangle_is_negative (v, c, a) in
+  (b1 = b2) && (b2 = b3)
+
+let intersect_hulls h1 h2 : polygon option =
+  let set1 = triangulate_hull h1 in
+  let set2 = triangulate_hull h2 in
+  let h3 = h1 @ h2 |> List.filter (fun v ->
+    set1 |> List.exists (fun t -> point_in_triangle t v) &&
+    set2 |> List.exists (fun t -> point_in_triangle t v))
+  in
+  if h3 = [] then None else Some (convex_hull h3)

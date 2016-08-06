@@ -11,4 +11,4 @@ val draw_line_and_two_vertexes: Geometry.line -> Geometry.vertex -> Geometry.ver
 
 val draw_solution: Geometry.polygon -> Solution.t -> unit
 
-val draw_facets: Facets.t -> unit
+val draw_poly_list: Geometry.polygon list -> unit

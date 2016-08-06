@@ -42,12 +42,15 @@ let draw_silhouette sil =
       poly |> List.iter (fun v ->
         plots [| conv_vertex v |])))
 
+let draw_poly_inner (p: polygon) =
+  List.combine p (rotate p) |> List.iter (fun (v1, v2) ->
+    draw_poly_line [| conv_vertex v1; conv_vertex v2 |])
+
 let draw_poly (p: polygon) =
   with_canvas (fun () ->
     set_color white;
     set_line_width 1;
-    List.combine p (rotate p) |> List.iter (fun (v1, v2) ->
-      draw_poly_line [| conv_vertex v1; conv_vertex v2 |]))
+    draw_poly_inner p)
 
 let draw_line_inner (l: line) =
   let open Num in
@@ -93,14 +96,11 @@ let draw_solution (target: polygon) (sol: Solution.t) =
   with_canvas (fun () ->
     set_color red;
     set_line_width 1;
-    List.combine target (rotate target) |> List.iter (fun (v1, v2) ->
-      draw_poly_line [| conv_vertex v1; conv_vertex v2 |]);
+    draw_poly_inner target;
 
     set_color white;
     set_line_width 1;
-    let poly = sol.dest |> convex_hull in
-    List.combine poly (rotate poly) |> List.iter (fun (v1, v2) ->
-      draw_poly_line [| conv_vertex v1; conv_vertex v2 |]);
+    draw_poly_inner (convex_hull sol.dest);
 
     set_color green;
     set_line_width 1;
@@ -111,9 +111,8 @@ let draw_solution (target: polygon) (sol: Solution.t) =
     in
     iter sol)
 
-let draw_facets (f: Facets.t) =
+let draw_poly_list (l: polygon list) =
   with_canvas (fun () ->
     set_color white;
     set_line_width 1;
-    f |> List.iter (fun (v1, v2) ->
-      draw_poly_line [| conv_vertex v1; conv_vertex v2 |]))
+    l |> List.iter draw_poly_inner)
