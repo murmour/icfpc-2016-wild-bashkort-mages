@@ -23,10 +23,10 @@ module VSet = Set.Make (Vertex)
 module VMap = Map.Make (Vertex)
 
 
-let get_flipped_facet (l: line) (st: State.t) (prev: State.t) : facet =
+let get_unflipped_facet (l: line) (st: State.t) (prev: State.t) : facet =
   let moved = collect (fun push ->
     st.points |> List.iter (fun v ->
-      if Geometry.line_vertex_relation l v = `OnLine then
+      if Geometry.line_vertex_relation l v = Exact then
         push v);
     let set = VSet.of_list st.points in
     prev.points |> List.iter (fun v ->
@@ -43,7 +43,21 @@ let recover (st: State.t) : t =
   st.points |> List.iter (fun v ->
     vmap := VMap.add v v !vmap);
 
-  let add_flipped_facet (l: line) f =
+  let rec flip_back lines v =
+    match lines with
+      | [] ->
+          v
+      | (l, rel) :: ls ->
+          match Geometry.line_vertex_relation l v with
+            | Above when rel = Above ->
+                flip_back ls (Geometry.flip_vertex l v)
+            | Below when rel = Below ->
+                flip_back ls (Geometry.flip_vertex l v)
+            | _ ->
+                flip_back ls v
+  in
+
+  let add_flipped_facet (l: line) line_acc f =
     let f =
       f |> List.map (fun v ->
         match VMap.Exceptionless.find v !vmap with
@@ -52,24 +66,25 @@ let recover (st: State.t) : t =
               vmap := VMap.add v' vdest !vmap;
               v'
           | None ->
-              vmap := VMap.add v v !vmap;
+              let vdest = flip_back line_acc v in
+              vmap := VMap.add v vdest !vmap;
               let v' = Geometry.flip_vertex l v in
-              vmap := VMap.add v' v !vmap;
+              vmap := VMap.add v' vdest !vmap;
               v')
     in
     facets := f :: !facets
   in
 
-  let rec iter (st: State.t) =
-    st.prev |> Option.may (fun (line, st_prev) ->
-      let f1 = get_flipped_facet line st st_prev in
+  let rec iter line_acc (st: State.t) =
+    st.prev |> Option.may (fun (line, rel, st_prev) ->
+      let f1 = get_unflipped_facet line st st_prev in
       let f1' = flip_poly line f1 in
       !facets |> List.iter (fun f2 ->
         Geometry.intersect_hulls f1' f2 |> Option.may (fun f3 ->
-          add_flipped_facet line f3));
-      iter st_prev)
+          add_flipped_facet line line_acc f3));
+      iter ((line, rel) :: line_acc) st_prev)
   in
-  iter st;
+  iter [] st;
 
   let vertexes =
     let valid = !facets |> List.concat |> VSet.of_list in

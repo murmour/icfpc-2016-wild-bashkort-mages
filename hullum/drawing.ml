@@ -105,7 +105,7 @@ let draw_state (target: polygon) (st: State.t) =
     set_color green;
     set_line_width 1;
     let rec iter (st: State.t) =
-      st.prev |> Option.may (fun (line, st) ->
+      st.prev |> Option.may (fun (line, rel, st) ->
         draw_line_inner line;
         iter st)
     in

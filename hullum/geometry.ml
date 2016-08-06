@@ -16,6 +16,8 @@ type line = { a: num; b: num; c: num }
 
 type area = num
 
+type line_relation = Exact | Above | Below
+
 type triangle = vertex * vertex * vertex
 
 
@@ -129,14 +131,14 @@ let hulls_are_equal (p1: polygon) (p2: polygon) : bool =
   in
   iter (p1, p2)
 
-let line_vertex_relation (l: line) ((x, y): vertex) =
+let line_vertex_relation (l: line) ((x, y): vertex) : line_relation =
   let res = compare_num (l.a*x + l.b*y + l.c) num_0 in
   if res < 0 then
-    `Below
+    Below
   else if res > 0 then
-    `Above
+    Above
   else
-    `OnLine
+    Exact
 
 let segment_intersection (s1: segment) (s2: segment) : vertex option =
   let (a, b) = s1 and (c, d) = s2 in

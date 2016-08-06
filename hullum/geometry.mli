@@ -11,6 +11,8 @@ type line = { a: Num.num; b: Num.num; c: Num.num }
 
 type area = Num.num
 
+type line_relation = Exact | Above | Below
+
 
 val compare_vertex: vertex -> vertex -> int
 
@@ -30,7 +32,7 @@ val hull_area: polygon -> area
 
 val hulls_are_equal: polygon -> polygon -> bool
 
-val line_vertex_relation: line -> vertex -> [ `OnLine | `Above | `Below ]
+val line_vertex_relation: line -> vertex -> line_relation
 
 val intersect_hulls: polygon -> polygon -> polygon option
 

@@ -3,7 +3,7 @@ type t =
   {
     points: Geometry.vertex list;
     area: Geometry.area;
-    prev: (Geometry.line * t) option;
+    prev: (Geometry.line * Geometry.line_relation * t) option;
   }
 
 
