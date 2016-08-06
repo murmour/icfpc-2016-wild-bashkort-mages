@@ -46,23 +46,28 @@ let apply_dissection target hull_old
     (relation: [ `Above | `Below | `OnLine ])
     ((l: line), (sol: Solution.t))
   : (Solution.t * area) option =
+  let flipped_at_least_one = ref false in
   let dest = sol.dest |> List.map (fun v ->
     if Geometry.line_vertex_relation l v = relation then
-      Geometry.flip_vertex l v
+      (flipped_at_least_one := true;
+       Geometry.flip_vertex l v)
     else
       v)
   in
-  let hull_new = dest |> Geometry.convex_hull in
-  let hull_union = Geometry.convex_hull (hull_old @ hull_new) in
-  if not (Geometry.hulls_are_equal hull_union hull_old) then
+  if not !flipped_at_least_one then
     None
   else
-    let hull_union = Geometry.convex_hull (hull_new @ target) in
-    if not (Geometry.hulls_are_equal hull_union hull_new) then
+    let hull_new = dest |> Geometry.convex_hull in
+    let hull_union = Geometry.convex_hull (hull_old @ hull_new) in
+    if not (Geometry.hulls_are_equal hull_union hull_old) then
       None
     else
-      Some ({ sol with dest; prev = Some (l, sol) },
-            Geometry.hull_area hull_new)
+      let hull_union = Geometry.convex_hull (hull_new @ target) in
+      if not (Geometry.hulls_are_equal hull_union hull_new) then
+        None
+      else
+        Some ({ sol with dest; prev = Some (l, sol) },
+              Geometry.hull_area hull_new)
 
 let apply_best_dissection target (sol: Solution.t) : Solution.t option =
   let hull = sol.dest |> Geometry.convex_hull in
@@ -135,7 +140,8 @@ let rec solve_loop (n: int) target sol : Solution.t =
     | Some sol ->
         solve_loop (Pervasives.succ n) target sol
     | None ->
-        failwith (Printf.sprintf "Unable to find solution on iteration %d!" n)
+        Printf.eprintf "Iteration %d was the terminal one" n;
+        sol
 
 let () =
   Arg.parse (Arg.align
