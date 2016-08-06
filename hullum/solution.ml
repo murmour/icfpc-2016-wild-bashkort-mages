@@ -83,12 +83,11 @@ let recover (st: State.t) : t =
 
 let write_file ~fname (sol: t) =
   let cout = if fname = "stdout" then stdout else open_out fname in
+  let (source, dest) = List.split sol.vertexes in
 
   let print_vertex (x, y) =
     fprintf cout "%s,%s\n" (Num.string_of_num x) (Num.string_of_num y)
   in
-
-  let (source, dest) = List.split sol.vertexes in
 
   fprintf cout "%d\n" (List.length source);
   source |> List.iter print_vertex;
@@ -98,8 +97,8 @@ let write_file ~fname (sol: t) =
     let f = List.tl f in
     fprintf cout "%d " (List.length f);
     f |> List.iter (fun v ->
-      let (i, _) = List.findi (fun i v' ->
-        Geometry.compare_vertex v v' = 0) source in
+      let (i, _) = source |> List.findi (fun i v' ->
+        Geometry.compare_vertex v v' = 0) in
       fprintf cout "%d " i);
     fprintf cout "\n");
 
