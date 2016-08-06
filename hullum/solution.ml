@@ -28,14 +28,9 @@ let write_file ~fname sol facets =
   facets |> List.iter (fun f ->
     let f = List.tl f in
     fprintf cout "%d " (List.length f);
-    let first = ref true in
     f |> List.iter (fun v ->
       let i = List.index_ofq v sol.source |> Option.get in
-      if !first then
-        (fprintf cout "%d" i;
-         first := false)
-      else
-        fprintf cout " %d" i);
+      fprintf cout "%d " i);
     fprintf cout "\n");
 
   sol.dest |> List.iter print_vertex
