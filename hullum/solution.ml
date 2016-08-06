@@ -71,10 +71,14 @@ let recover (st: State.t) : t =
   in
   iter st;
 
-  {
-    vertexes = VMap.bindings !vmap;
-    facets = !facets;
-  }
+  let vertexes =
+    let valid = !facets |> List.concat |> VSet.of_list in
+    collect (fun push ->
+      !vmap |> VMap.iter (fun vsrc vdest ->
+         if VSet.mem vsrc valid then
+           push (vsrc, vdest)))
+  in
+  { vertexes; facets = !facets }
 
 
 let write_file ~fname (sol: t) =
