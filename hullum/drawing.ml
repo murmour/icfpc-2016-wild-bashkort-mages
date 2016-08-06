@@ -110,3 +110,10 @@ let draw_solution (target: polygon) (sol: Solution.t) =
         iter sol)
     in
     iter sol)
+
+let draw_facets (f: Facets.t) =
+  with_canvas (fun () ->
+    set_color white;
+    set_line_width 1;
+    f |> List.iter (fun (v1, v2) ->
+      draw_poly_line [| conv_vertex v1; conv_vertex v2 |]))

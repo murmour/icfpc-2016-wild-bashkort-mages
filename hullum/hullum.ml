@@ -120,8 +120,8 @@ let () =
   let (sl, sk) = Problem.read_file ~fname:!input_file in
   if !interactive then
     Drawing.draw_skeleton sk;
-  if !interactive then
-    Drawing.draw_silhouette sl;
+  (* if !interactive then *)
+  (*   Drawing.draw_silhouette sl; *)
 
   let target = Geometry.convex_hull (List.concat sl) in
   if !interactive then
@@ -139,5 +139,10 @@ let () =
   let sol = solve_loop 0 target Solution.default in
   if !interactive then
     Drawing.draw_solution target sol;
+
+  let facets = Facets.recover sol in
+  if !interactive then
+    Drawing.draw_facets facets;
+
   if !output_file <> "" then
     Solution.write_file ~fname:!output_file sol
