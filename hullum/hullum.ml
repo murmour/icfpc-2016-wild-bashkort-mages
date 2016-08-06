@@ -43,8 +43,7 @@ let gen_dissections (st: State.t) hull =
 
 let apply_dissection target hull_old
     (relation: [ `Above | `Below | `OnLine ])
-    ((l: line), (st: State.t))
-  : (State.t * area) option =
+    ((l: line), (st: State.t)) : State.t option =
   let flipped_at_least_one = ref false in
   let points = st.points |> List.map (fun v ->
     if Geometry.line_vertex_relation l v = relation then
@@ -65,7 +64,8 @@ let apply_dissection target hull_old
       if not (Geometry.hulls_are_equal hull_union hull_new) then
         None
       else
-        Some ({ points; prev = Some (l, st) }, Geometry.hull_area hull_new)
+        let area = Geometry.hull_area hull_new in
+        Some ({ points; area; prev = Some (l, st) })
 
 let apply_best_dissection target (st: State.t) : State.t option =
   let hull = st.points |> Geometry.convex_hull in
@@ -74,9 +74,9 @@ let apply_best_dissection target (st: State.t) : State.t option =
   let forks2 = sects |> List.filter_map (apply_dissection target hull `Below) in
   let best = ref None in
   let min_area = ref num_2 in
-  forks1 @ forks2 |> List.iter (fun (st, area) ->
-    if area </ !min_area then
-      (min_area := area;
+  forks1 @ forks2 |> List.iter (fun (st: State.t) ->
+    if st.area </ !min_area then
+      (min_area := st.area;
        best := Some st));
   !best
 
@@ -85,18 +85,18 @@ let apply_all_dissections target (st: State.t) : unit =
   let sects = gen_dissections st hull in
   let forks1 = sects |> List.filter_map (apply_dissection target hull `Above) in
   let forks2 = sects |> List.filter_map (apply_dissection target hull `Below) in
-  forks1 @ forks2 |> List.iter (fun ((st: State.t), area) ->
+  forks1 @ forks2 |> List.iter (fun (st: State.t) ->
     let line = fst (Option.get st.prev) in
     Printf.printf "line: a = %s, b = %s, c = %s; area = %s%!\n"
       (string_of_num line.a)
       (string_of_num line.b)
       (string_of_num line.c)
-      (string_of_num area);
+      (string_of_num st.area);
     Drawing.draw_line line;
     Drawing.draw_state target st)
 
-let rec solve_loop (n: int) target st : State.t =
-  Printf.eprintf "Iteration %d...%!\n" n;
+let rec solve_loop (n: int) target (st: State.t) : State.t =
+  Printf.eprintf "Iteration %d (area %s)...%!\n" n (string_of_num st.area);
   if n = !iterations then
     st
   else match apply_best_dissection target st with

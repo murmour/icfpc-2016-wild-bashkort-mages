@@ -5,6 +5,7 @@ open Utils
 type t =
   {
     points: Geometry.vertex list;
+    area: Geometry.area;
     prev: (Geometry.line * t) option;
   }
 
@@ -15,5 +16,6 @@ let square =
 let default =
   {
     points = square;
+    area = num_1;
     prev = None;
   }
