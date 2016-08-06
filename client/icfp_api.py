@@ -105,7 +105,6 @@ solution_name_rx = re.compile('solution_'
                               '(?P<version>[0-9]+).out')
 
 def parse_solution_fname(fname):
-    print(fname)
     m = re.match(solution_name_rx, fname)
     return { 'fname': '../data/solutions/' + fname,
              'set_id': int(m.group('set_id')),
@@ -126,7 +125,3 @@ def send_all_solutions(tag):
         if response is None:
             return
         print(response)
-
-
-if __name__ == '__main__':
-    print(filter_solutions(sys.argv[1]))
