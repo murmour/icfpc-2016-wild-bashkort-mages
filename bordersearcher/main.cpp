@@ -13,7 +13,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "system.h"
+
 using namespace std;
+using namespace PlatBox;
 
 #define WR printf
 #define RE scanf
@@ -36,7 +39,7 @@ using namespace std;
 void __never(int a){printf("\nOPS %d", a);}
 #define ass(s) {if (!(s)) {__never(__LINE__);cout.flush();cerr.flush();abort();}}
 
-double eps = 0.000000001;
+double eps = 0.00000001;
 
 int n, m;
 double X[1005], Y[1005];
@@ -45,9 +48,16 @@ bool can[1005][100][100];
 bool can2[1005][100][100];
 bool canbe[1005];
 vector< VI > paths;
+vector< int > factor;
 int cur_p[1005], c_sz = 0;
 double pi = acos(-1.);
 double pi2 = pi*0.5;
+
+int T = 10000;
+int P = 10000;
+int Strip = -1;
+
+bool debug = true;
 
 bool F[1005];
 
@@ -72,17 +82,21 @@ double get_angle( int i, int j, int k )
 
 void p_search( double L )
 {
-	if ( fabs(L-1.) < eps )
-	{
-		if (canbe[cur_p[c_sz-1]])
+	for (int z=1; z<=50; z++)
+		if ( fabs(L-1./z) < eps )
 		{
-			VI v;
-			FOR(a,0,c_sz-1) v.push_back( cur_p[a] );
-			paths.push_back( v );
+			if (canbe[cur_p[c_sz-1]])
+			{
+				VI v;
+				FOR(a,0,c_sz-1) v.push_back( cur_p[a] );
+				paths.push_back( v );
+				factor.push_back( z );
+			}
 		}
-		return;
-	}
-	if ( L > 1. ) return;
+	if ( L > 1.-eps ) return;
+
+	if (clock() > T) exit(1);
+	if (SZ(paths) > P) exit(2);
 
 	int v = cur_p[c_sz-1];
 	int pre = cur_p[c_sz-2];
@@ -111,6 +125,8 @@ void dfs( int v, int i, int j, double A )
 	}
 	if ( A > pi ) return;
 
+	if (clock() > T) exit(1);
+
 	int p1 = (j+1)%SZ(E[v]);
 	int p2 = (j+SZ(E[v])-1)%SZ(E[v]);
 	double ang = get_angle( E[v][j], v, E[v][p1] );
@@ -128,6 +144,8 @@ void dfs2( int v, int i, int j, double A )
 		return;
 	}
 	if ( A > pi2 ) return;
+
+	if (clock() > T) exit(1);
 
 	int p1 = (j+1)%SZ(E[v]);
 	int p2 = (j+SZ(E[v])-1)%SZ(E[v]);
@@ -173,6 +191,8 @@ void sol()
 		dfs2( a, b, b, 0. );
 	}
 
+	if (debug) cerr << "Can phase finished\n";
+
 	FOR(a,0,n-1) if (canbe[a])
 		FA(b,E[a])
 		{
@@ -182,6 +202,7 @@ void sol()
 			p_search( get_dist( a, E[a][b] ) );
 		}
 
+	if (debug) cerr << "Paths found " << SZ(paths) << "\n";
 	cout << SZ(paths) << "\n";
 	FA(a,paths)
 	{
@@ -191,35 +212,41 @@ void sol()
 	}
 
 	map< vector< VI >, VI > Map;
-	FA(a,paths) FA(b,paths) if (p_next( paths[a], paths[b] ))
-		FA(c,paths) if (p_next( paths[b], paths[c] ))
-			FA(d,paths) if (p_next( paths[c], paths[d] ))
-				if (p_next( paths[d], paths[a] ))
-				{
-					//cout << a << " " << b << " " << c << " " << d << "\n";
-					VI ind = VI(4);
-					ind[0] = a; ind[1] = b; ind[2] = c; ind[3] = d;
-					vector< VI > mi;
-					FOR(e,0,3) mi.push_back( paths[ind[e]] );
-
-					FOR(e,0,3)
-					{
-						vector< VI > vv;
-						FOR(f,0,3) vv.push_back( paths[ind[(e+f)%4]] );
-						if (vv < mi) mi = vv;
-						vv.clear();
-						DFOR(f,3,0)
+	DFOR(z,(Strip==-1?50:Strip),(Strip==-1?1:Strip))
+	{
+		FA(a,paths) if (factor[a]==z) FA(b,paths) if (factor[b]==1)
+			if (p_next( paths[a], paths[b] ))
+				FA(c,paths) if (factor[c]==z) if (p_next( paths[b], paths[c] ))
+					FA(d,paths) if (factor[d]==1) if (p_next( paths[c], paths[d] ))
+						if (p_next( paths[d], paths[a] ))
 						{
-							VI v = paths[ind[(e+f)%4]];
-							reverse( v.begin(), v.end() );
-							vv.push_back( v );
-						}
-						if (vv < mi) mi = vv;
-					}
+							if (clock() > T) exit(1);
 
-					if (Map.find( mi ) == Map.end())
-						Map[ mi ] = ind;
-				}
+							//cout << a << " " << b << " " << c << " " << d << "\n";
+							VI ind = VI(4);
+							ind[0] = a; ind[1] = b; ind[2] = c; ind[3] = d;
+							vector< VI > mi;
+							FOR(e,0,3) mi.push_back( paths[ind[e]] );
+
+							FOR(e,0,3)
+							{
+								vector< VI > vv;
+								FOR(f,0,3) vv.push_back( paths[ind[(e+f)%4]] );
+								if (vv < mi) mi = vv;
+								vv.clear();
+								DFOR(f,3,0)
+								{
+									VI v = paths[ind[(e+f)%4]];
+									reverse( v.begin(), v.end() );
+									vv.push_back( v );
+								}
+								if (vv < mi) mi = vv;
+							}
+
+							if (Map.find( mi ) == Map.end())
+								Map[ mi ] = ind;
+						}
+	}
 
 	cout << "\n";
 	cout << SZ( Map ) << "\n";
@@ -280,7 +307,7 @@ void sol()
 			if (SZ(ss)<2) megaflag = false;
 		}
 
-		if (megaflag)
+		//if (megaflag)
 		{
 			FA(a,it->second) cout << it->second[a] << " ";
 			cout << "\n";
@@ -290,7 +317,7 @@ void sol()
 			{
 				set< int > ss = it2->second;
 				cout << it2->first << " " << SZ(ss) << "  ";
-				ass( SZ(ss)>=2 );
+				//ass( SZ(ss)>=2 );
 				for (set< int >::iterator it3 = ss.begin(); it3 != ss.end(); it3++)
 					cout << (*it3) << " ";
 				//FA(a,vec) cout << vec[a] << " ";
@@ -308,23 +335,70 @@ void sol()
 			cout << a << ": " << E[a][b] << "-" << E[a][c] << "\n";*/
 }
 
-int main()
+int main(int argc, char** argv)
 {
+	System::ParseArgs(argc, argv);
+
+	int a = 28;
 	//FOR(a,98,101) if (a!=24 && a!=30 && a!=32 && a!=33 && a!=83 && a!=84 && a!=85 && a!=86 && a!=88 &&
 	//	a!=89 && a!=90 && a!=92 && a!=101)
 	//	if (!(11<=a && a<=16) && !(38<=a && a<=44) && a!=46 && a!=47 && a!=53 && a!=54)
-	FOR(a,52,52)
+	
 	{
-		cerr << a << "\n";
-		char ch[100];
-		sprintf( ch, "../data/problems/%d.ind", a );
-		freopen( ch, "r", stdin );
+		//cerr << a << "\n";
 
-		sprintf( ch, "../data/problems/%d.p", a );
-		freopen( ch, "w", stdout );
-		//freopen( "output.txt", "w", stdout );
+		if (System::HasArg("help"))
+		{
+			cout << "  in  - input file\n"
+				<<  "  out - output file\n"
+				<<  "  t   - time limit (default " << T << ")\n"
+				<<  "  p   - limit for number of paths (default " << P << ")\n"
+				<<  "  s   - limit for strip\n";
+			cout << "Exit(1) = Time Limit Exceeded, Exit(2) = Paths Limit Exceeded\n";
+			return 0;
+		}
+
+		if (System::HasArg("in"))
+		{
+			string inf = System::GetArgValue("in");
+			freopen( inf.c_str(), "r", stdin );
+			debug = false;
+		}
+		else
+		{
+			char ch[100];
+			sprintf( ch, "../data/problems/%d.ind", a );
+			freopen( ch, "r", stdin );
+		}
+
+		if (System::HasArg("out"))
+		{
+			string outf = System::GetArgValue("out");
+			freopen( outf.c_str(), "w", stdout );
+			debug = false;
+		}
+		else
+		{
+			//sprintf( ch, "../data/problems/%d.p", a );
+			//freopen( ch, "w", stdout );
+			freopen( "output.txt", "w", stdout );
+		}
+
+		if (System::HasArg("t"))
+		{
+			T = atoi(System::GetArgValue("t").c_str());
+		}
+		if (System::HasArg("p"))
+		{
+			P = atoi(System::GetArgValue("p").c_str());
+		}
+		if (System::HasArg("s"))
+		{
+			Strip = atoi(System::GetArgValue("s").c_str());
+		}
 
 		paths.clear();
+		factor.clear();
 
 		cin >> n;
 		ass( n <= 1000 );
