@@ -18,12 +18,11 @@ let write_file ~fname sol facets =
   let cout = if fname = "stdout" then stdout else open_out fname in
 
   let print_vertex (x, y) =
-    fprintf cout "%s,%s " (Num.string_of_num x) (Num.string_of_num y)
+    fprintf cout "%s,%s\n" (Num.string_of_num x) (Num.string_of_num y)
   in
 
   fprintf cout "%d\n" (List.length sol.source);
   sol.source |> List.iter print_vertex;
-  fprintf cout "\n";
 
   fprintf cout "%d\n" (List.length facets);
   facets |> List.iter (fun f ->
@@ -34,8 +33,7 @@ let write_file ~fname sol facets =
       fprintf cout "%d " i);
     fprintf cout "\n");
 
-  sol.dest |> List.iter print_vertex;
-  fprintf cout "\n"
+  sol.dest |> List.iter print_vertex
 
 
 let square =
