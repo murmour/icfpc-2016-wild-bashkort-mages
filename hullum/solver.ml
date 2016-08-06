@@ -42,11 +42,11 @@ let apply_dissection target hull_old
     ((l: line), (st: State.t)) : State.t option =
   let flipped_at_least_one = ref false in
   let points = st.points |> List.map (fun v ->
-    if Geometry.line_vertex_relation l v = relation then
-      (flipped_at_least_one := true;
-       Geometry.flip_vertex l v)
+    if Geometry.line_vertex_relation l v <> relation then
+      v
     else
-      v)
+      (flipped_at_least_one := true;
+       Geometry.flip_vertex l v))
   in
   if not !flipped_at_least_one then
     None
@@ -63,31 +63,59 @@ let apply_dissection target hull_old
         let area = Geometry.hull_area hull_new in
         Some ({ points; area; prev = Some (l, relation, st) })
 
-let apply_best_dissection target (st: State.t) : State.t option =
-  let hull = st.points |> Geometry.convex_hull in
-  let sects = gen_dissections st hull in
-  let forks1 = sects |> List.filter_map (apply_dissection target hull Above) in
-  let forks2 = sects |> List.filter_map (apply_dissection target hull Below) in
+let choose_best_dissection forks : State.t option =
   let best = ref None in
   let min_area = ref num_2 in
-  forks1 @ forks2 |> List.iter (fun (st: State.t) ->
+  forks |> List.iter (fun (st: State.t) ->
     if st.area </ !min_area then
       (min_area := st.area;
        best := Some st));
   !best
+
+let apply_approx_dissection target (st: State.t) : State.t option =
+  let hull = st.points |> Geometry.convex_hull in
+  let sects = gen_dissections st hull in
+  let forks1 = sects |> List.filter_map (apply_dissection target hull Above) in
+  let forks2 = sects |> List.filter_map (apply_dissection target hull Below) in
+  choose_best_dissection (forks1 @ forks2)
+
+let apply_exact_dissection target (st: State.t) : State.t option =
+  let forks =
+    let target = List.tl target in
+    List.combine target (rotate target) |> List.map (fun (v1, v2) ->
+      let line = Geometry.compute_line v1 v2 in
+      st)                        (* todo *)
+  in
+  choose_best_dissection forks
 
 let approximate ~iterations ~target : State.t =
   let rec iter n (st: State.t) : State.t =
     Printf.eprintf "Iteration %d (area %s)...%!\n" n (string_of_num st.area);
     if n = iterations then
       st
-    else match apply_best_dissection target st with
+    else match apply_approx_dissection target st with
       | Some st ->
           iter (Pervasives.succ n) st
       | None ->
-          Printf.eprintf "Iteration %d was the terminal one\n" n;
+          Printf.eprintf "Found a perfect solution!\n";
           st
   in
   iter 0 State.default
 
-  let dissect_step = num_of_int 10
+let exact ~iterations ~target : State.t =
+  let rec iter n (st: State.t) : State.t =
+    Printf.eprintf "Iteration %d (area %s)...%!\n" n (string_of_num st.area);
+    if n = iterations then
+      st
+    else match apply_exact_dissection target st with
+      | Some st ->
+          iter (Pervasives.succ n) st
+      | None ->
+          match apply_approx_dissection target st with
+            | Some st ->
+                iter (Pervasives.succ n) st
+            | None ->
+                Printf.eprintf "Found a perfect solution!\n";
+                st
+  in
+  iter 0 State.default
