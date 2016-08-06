@@ -8,6 +8,7 @@ import io, os, json
 import itertools
 from fractions import Fraction
 from math import sqrt
+from time import clock
 
 
 kSz = 1
@@ -21,12 +22,16 @@ kFailFacetsNotFound = 'NoFacets'
 kFailNegativeRoot = 'NegRoot'
 kFailIrrationalRoot = 'IrrRoot'
 kFailMissingVertices = 'MissVer'
+kFailCombinationExceeded = 'CombTooMany'
 
 class ESolverFailure(Exception):
     
     def __init__(self, msg):
-        Exception.__init__()
+        Exception.__init__(self)
         self.msg = msg
+        
+class ESolverFailureRecv(ESolverFailure):
+    pass
 
 class Edge:
     def __init__(self, a, b):
@@ -118,8 +123,8 @@ class Interior:
         self.v = v
         self.others = others
 
-def loadP(idx):
-    fname = '../data/problems/%d.p' % idx
+def loadP(idx, bord_version):
+    fname = '../data/problems/%d.p%s' % (idx, bord_version)
     with io.open(fname) as f:
             
         def getline():
@@ -282,8 +287,8 @@ def getsecond(s):
         if t == 2:
             return x
     
-def in_square(p):
-    return 0 < p[0] < 1 and 0 < p[1] < 1
+def in_square(p, xlen):
+    return 0 < p[0] < xlen and 0 < p[1] < 1
     
     
 def testQuad(paths, verts, interiors):
@@ -344,8 +349,10 @@ def testQuad(paths, verts, interiors):
     
     for ip in interiors:
         c = verts[ip.v]
+        if len(ip.others) < 2:
+            continue
         if not (1 < len(ip.others) < 3):
-            print(ip.others)
+            print('others=', ip.others)
         #assert(1 < len(ip.others) < 3)
         #ia = ip.others[0]
         #ib = ip.others[1]
@@ -356,17 +363,22 @@ def testQuad(paths, verts, interiors):
             r1s = getDistance2(c, a)
             r2s = getDistance2(c, b)
             if len(new_pts[ia]) > 1:
+                print('Multiple ia')
                 print(ia)
                 print(new_pts[ia])            
             #assert(len(new_pts[ia]) == 1)
             if len(new_pts[ib]) > 1:
+                print('Multiple ib')
                 print(ib, ip.v)
                 print(c)
                 print(new_pts[ib])
             #assert(len(new_pts[ib]) == 1)
             pts = getDistPoints(getfirst(new_pts[ia]), r1s, getfirst(new_pts[ib]), r2s)
-            pts = [p for p in pts if in_square(p)]
-            assert(pts)
+            #print('intpts0', pts)
+            pts = [p for p in pts if in_square(p, xlen)]
+            #if not pts:
+            #    return []
+            #assert(pts)
             print('intpts=%s' % pts)
             
             #if len(pts) > 1: 
@@ -377,7 +389,8 @@ def testQuad(paths, verts, interiors):
             return pts
         
         assert(not new_pts[ip.v])    
-        for ia, ib in itertools.combinations(ip.others, 2):
+        #for ia, ib in itertools.combinations(ip.others, 2):
+        for ia, ib in [(ip.others[0], ip.others[1])]:
             #new_pts[ip.v].add(getInt(ia, ib))
             new_pts[ip.v].update(getInt(ia, ib))
             
@@ -410,6 +423,11 @@ def extractFacets(pts, edges, xlen, logg=False):
             eactive[i] += 1
         ed[a].append((i, b))
         ed[b].append((i, a))
+        
+    for i, v in enumerate(pts):
+        if in_square(v, xlen) and len(ed[i]) % 2 == 1:
+            #print('Oddity failure: %d' % i)
+            return None
         
     #print('=======')
     
@@ -544,21 +562,33 @@ def extractFacetsX(pts0, pts, edges, xlen):
     
     edges0 = [(a, b) for a, b in edges if testedge(a, b)]
     
-    sets = [getPartitions(s) for s in sets]    
-    
-    mm = itertools.product(*sets)    
-    for zzz in mm:
-        eee = []
-        for t in zzz:
-            for u, v in t:
-                eee.append((u, v))
-        #print('eee=%s' % eee)
-        eee.extend(edges0)
-        #saveFacets(pts0, eee, 'facets.json')        
-        ret = extractFacets(pts0, eee, xlen)
-        if ret:
-            saveFacets(pts0, eee, 'facets.json')
-            return ret
+    sets0 = sets
+            
+    for skip in range(3):
+        sets = [getPartitions(s, skip) for s in sets0]
+        mm = itertools.product(*sets)
+        ctr = 0
+        start_t = clock()     
+        for zzz in mm:
+            ctr += 1
+            if clock() - start_t > 10:
+                print('Tried %.2f per second' % (ctr / 20))
+                #raise ESolverFailure(kFailCombinationExceeded)
+                break
+            if ctr % 1000 == 0:
+                print('ctr=', ctr)
+            
+            eee = []
+            for t in zzz:
+                for u, v in t:
+                    eee.append((u, v))
+            #print('eee=%s' % eee)
+            eee.extend(edges0)
+            #saveFacets(pts0, eee, 'facets.json')        
+            ret = extractFacets(pts0, eee, xlen)
+            if ret:
+                saveFacets(pts0, eee, 'facets.json')
+                return ret
         
     #mane = [ [(2,4), (4, 8), (8, 5), (1, 7)] ]
     mane = []
@@ -579,7 +609,7 @@ def extractFacetsX(pts0, pts, edges, xlen):
     
                 
 
-def getPartitions(a):
+def getPartitions(a, skip0):
     #print('a = %s' % a)
     n = len(a)
     used = [False] * n
@@ -590,6 +620,8 @@ def getPartitions(a):
         res.append([(a[q], a[p]) for q, p in cur])
     
     def go(i, last, skip):
+        if len(res) > 1000:
+            return
         j = i
         while j < n and used[j]:
             j += 1
@@ -615,22 +647,25 @@ def getPartitions(a):
         if skip:
             go(j+1, last, skip-1)
         used[j] = False
-    
+        
     if n > 4:
         aa = list(range(1, n-2))#  a[1:-2]
-        for t in getPartitions(aa):
+        for t in getPartitions(aa, skip0):
             q = t + [(0, n-2), (0, n-1)]            
             add(q)            
             #print(res[-1])
     
-    if len(a) == 3:
+    if n == 3:
         add([(0, 1), (0, 2)])
         #add([(1, 0), (1, 2)])
         add([(0, 2), (1, 2)])
         
-    go(0, 1, kSkip)    
+    if n == 4:
+        add([(0, 1), (2, 3)])
+        
+    go(0, 1, skip0)    
     # todo: optimize out invalid
-    return res        
+    return res
 
 
 def optimizeSol(np, verts, facets):
@@ -761,17 +796,20 @@ def duplicateX(sqv, tgtv, edges, cnt):
     
 
 
-def test(idx):
+def test(idx, bord_version=''):
     verts = loadVerts(idx)
-    pat = loadP(idx)
+    pat = loadP(idx, bord_version)
     edges = loadEdges(idx)
     if not pat.quads:
         print('No way!')
         raise ESolverFailure(kFailNoQuads)
-    for q in pat.quads:
+    for q in pat.quads[:2000]:
         print('Trying %s' % q.idxs)
         #print('verts=%s' % printverts(verts))
-        np = testQuad([pat.paths[i] for i in q.idxs], verts, q.interiors)
+        try:
+            np = testQuad([pat.paths[i] for i in q.idxs], verts, q.interiors)
+        except ESolverFailureRecv:
+            continue
         if not np:
             continue
         #print(np)
@@ -821,7 +859,7 @@ def test(idx):
         #return
         saveSol(idx, np2, verts2, facets)
         print('Done!')
-        break
+        return True
     
     raise ESolverFailure(kFailMissingVertices)
 
@@ -835,13 +873,13 @@ def fr_sqrt(x):
     #return sqrt(float(x))
     #print(x)
     if x < 0:
-        raise ESolverFailure(kFailNegativeRoot)
+        raise ESolverFailureRecv(kFailNegativeRoot)
     t1 = get_square2(x.numerator)
     if t1 == None:        
         print(x.numerator)
         return approx_sqrt(x)
     if t1 == None:
-        raise ESolverFailure(kFailIrrationalRoot)
+        raise ESolverFailureRecv(kFailIrrationalRoot)
     assert(t1 != None) 
     t2 = get_square2(x.denominator)
     if t2 == None:
@@ -873,7 +911,7 @@ def test_distpoints():
     print(q)
 
 kVersion = 17
-kSkip = 1
+#kSkip = 1
 
 def test_facets():
     global kSz
@@ -891,7 +929,7 @@ if __name__ == '__main__':
     #manual.extend([[12,13,6,5], [5,6,7,9], [9,7,0,1], [13,3,2,6], [6,2,4,8,11,7], [7,11,10,0]]) # 23 todo: fix
     #manual.extend([[5,4, 8,6], [4,7,8], [7,2,1,3,8], [6,8,3,0]]) # 45 todo: fix 
     #manual.extend([[7,9,5], [9,12,11,6,3,5], [3,6,4], [4,6,2], [2,6,11,10,1], [1,10,8,0]]) # 56 todo: fix
-    test(35)
+    test(53, '1')
     exit()
     #p = getPartitions([0, 1, 2, 3, 4, 6, 8, 9])
     #print([(0, 8), (1, 6), (2, 9), (3, 4)] in p)
