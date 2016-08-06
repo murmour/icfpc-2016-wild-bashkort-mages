@@ -131,7 +131,7 @@ let () =
   (* if !interactive then *)
   (*   Drawing.draw_poly target; *)
 
-  let target =
+  let (target, offset) =
     match Geometry.fit_poly target with
       | Some t -> t
       | None ->
@@ -144,7 +144,7 @@ let () =
   if !interactive then
     Drawing.draw_state target st;
 
-  let sol = Solution.recover st in
+  let sol = Solution.recover st offset in
   if !interactive then
     Drawing.draw_poly_list sol.facets;
 

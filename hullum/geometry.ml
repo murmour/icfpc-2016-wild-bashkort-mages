@@ -18,6 +18,8 @@ type area = num
 
 type line_relation = Exact | Above | Below
 
+type fit_offset = { shift: vector; mult: vector }
+
 type triangle = vertex * vertex * vertex
 
 
@@ -59,15 +61,16 @@ let convex_hull points : polygon =
 
   (List.rev (drop_first lower)) @ (List.rev upper)
 
-let vertex_of_ints (x, y) =
+let vector_of_ints (x, y) : vector =
   (num_of_int x, num_of_int y)
 
-let gen_poly_rotations (p: polygon) : polygon list =
+let for_each_poly_mult action : unit =
   [ (1, 1); (1, -1); (-1, 1); (-1, -1) ]
-  |> List.map vertex_of_ints
-  |> List.map (fun (rot_x, rot_y) ->
-      p |> List.map (fun (x, y) ->
-        (x * rot_x, y * rot_y)))
+  |> List.map vector_of_ints
+  |> List.iter action
+
+let apply_poly_mult (p: polygon) ((mult_x, mult_y): vector) =
+  p |> List.map (fun (x, y) -> (x * mult_x, y * mult_y))
 
 let vertex_fits (x, y) : bool =
   x >=/ num_0 && x <=/ num_1 && y >=/ num_0 && y <=/ num_1
@@ -75,19 +78,32 @@ let vertex_fits (x, y) : bool =
 let poly_fits p : bool =
   p |> List.for_all vertex_fits
 
-let shift_poly p : polygon =
+let gen_poly_shift p : vector =
   let min_x = p |> List.map fst |> List.reduce min_num in
   let min_y = p |> List.map snd |> List.reduce min_num in
-  p |> List.map (fun (x, y) ->
-    (x - min_x, y - min_y))
+  (minus_num min_x, minus_num min_y)
 
-let fit_poly p : polygon option =
+let apply_poly_shift (p: polygon) ((shift_x, shift_y): vector) =
+  p |> List.map (fun (x, y) -> (x + shift_x, y + shift_y))
+
+let fit_poly p : (polygon * fit_offset) option =
   Return.label (fun l ->
-    gen_poly_rotations p |> List.iter (fun (p: polygon) ->
-      let p = shift_poly p in
+    for_each_poly_mult (fun (mult: vector) ->
+      let p = apply_poly_mult p mult in
+      let shift = gen_poly_shift p in
+      let p = apply_poly_shift p shift in
       if poly_fits p then
-        Return.return l (Some p));
+        Return.return l (Some (p, { mult; shift })));
     None)
+
+let negate_offset (off: fit_offset) : fit_offset =
+  let (shift_x, shift_y) = off.shift in
+  { mult = off.mult; shift = (minus_num shift_x, minus_num shift_y) }
+
+let apply_vertex_offset (off: fit_offset) ((x, y): vertex) : vertex =
+  let (mult_x, mult_y) = off.mult in
+  let (shift_x, shift_y) = off.shift in
+  ((x + shift_x) * mult_x, (y + shift_y) * mult_y)
 
 let flip_vertex (l: line) ((x, y): vertex) : vertex =
   let d = l.a*x + l.b*y + l.c in

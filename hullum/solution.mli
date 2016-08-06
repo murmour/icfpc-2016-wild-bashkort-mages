@@ -10,4 +10,4 @@ type t =
 
 val write_file: fname: string -> t -> unit
 
-val recover: State.t -> t
+val recover: State.t -> Geometry.fit_offset -> t

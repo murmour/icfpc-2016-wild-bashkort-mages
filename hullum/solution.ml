@@ -36,7 +36,7 @@ let get_unflipped_facet (l: line) (st: State.t) (prev: State.t) : facet =
   Geometry.convex_hull moved
 
 
-let recover (st: State.t) : t =
+let recover (st: State.t) (off: Geometry.fit_offset) : t =
   let facets = ref [ Geometry.convex_hull st.points ] in
 
   let vmap = ref VMap.empty in
@@ -87,11 +87,13 @@ let recover (st: State.t) : t =
   iter [] st;
 
   let vertexes =
+    let off' = Geometry.negate_offset off in
     let valid = !facets |> List.concat |> VSet.of_list in
     collect (fun push ->
       !vmap |> VMap.iter (fun vsrc vdest ->
          if VSet.mem vsrc valid then
-           push (vsrc, vdest)))
+           let vdest' = Geometry.apply_vertex_offset off' vdest in
+           push (vsrc, vdest')))
   in
   { vertexes; facets = !facets }
 

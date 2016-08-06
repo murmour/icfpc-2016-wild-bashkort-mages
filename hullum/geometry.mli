@@ -13,12 +13,22 @@ type area = Num.num
 
 type line_relation = Exact | Above | Below
 
+type fit_offset = { shift: vector; mult: vector }
+
+type triangle = vertex * vertex * vertex
+
 
 val compare_vertex: vertex -> vertex -> int
 
+val print_vertex: vertex -> string
+
 val convex_hull: vertex list -> polygon
 
-val fit_poly: polygon -> polygon option
+val fit_poly: polygon -> (polygon * fit_offset) option
+
+val negate_offset: fit_offset -> fit_offset
+
+val apply_vertex_offset: fit_offset -> vertex -> vertex
 
 val flip_poly: line -> polygon -> polygon
 
