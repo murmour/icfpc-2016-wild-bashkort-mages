@@ -92,7 +92,7 @@ let draw_line_and_two_vertexes (l: line) v1 v2 =
     draw_poly_line [| conv_vertex (x1, y1); conv_vertex (x2, y2) |];
     draw_poly_line [| conv_vertex v1; conv_vertex v2 |])
 
-let draw_solution (target: polygon) (sol: Solution.t) =
+let draw_state (target: polygon) (st: State.t) =
   with_canvas (fun () ->
     set_color red;
     set_line_width 1;
@@ -100,16 +100,16 @@ let draw_solution (target: polygon) (sol: Solution.t) =
 
     set_color white;
     set_line_width 1;
-    draw_poly_inner (convex_hull sol.dest);
+    draw_poly_inner (convex_hull st.points);
 
     set_color green;
     set_line_width 1;
-    let rec iter (sol: Solution.t) =
-      sol.prev |> Option.may (fun (line, sol) ->
+    let rec iter (st: State.t) =
+      st.prev |> Option.may (fun (line, st) ->
         draw_line_inner line;
-        iter sol)
+        iter st)
     in
-    iter sol)
+    iter st)
 
 let draw_poly_list ?(color = white) (l: polygon list) =
   with_canvas (fun () ->

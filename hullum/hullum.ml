@@ -12,7 +12,7 @@ let dissect_step = num_of_int 10
 let iterations = ref 10
 
 
-let gen_dissections (sol: Solution.t) hull =
+let gen_dissections (st: State.t) hull =
   let vertexes =
     collect (fun push ->
       let hull = List.tl hull in
@@ -33,21 +33,20 @@ let gen_dissections (sol: Solution.t) hull =
       vertexes |> List.iter (fun (kind2, v2) ->
         if Geometry.compare_vertex v1 v2 > 0 then
           begin
-            let add_vertex (sol: Solution.t) v =
-              { sol with source = v :: sol.source; dest = v :: sol.dest }
-            in
+            let add_vertex (st: State.t) v =
+              { st with points = v :: st.points } in
             let line = Geometry.compute_line v1 v2 in
-            let sol = if kind1 = `New then add_vertex sol v1 else sol in
-            let sol = if kind2 = `New then add_vertex sol v2 else sol in
-            push (line, sol)
+            let st = if kind1 = `New then add_vertex st v1 else st in
+            let st = if kind2 = `New then add_vertex st v2 else st in
+            push (line, st)
           end)))
 
 let apply_dissection target hull_old
     (relation: [ `Above | `Below | `OnLine ])
-    ((l: line), (sol: Solution.t))
-  : (Solution.t * area) option =
+    ((l: line), (st: State.t))
+  : (State.t * area) option =
   let flipped_at_least_one = ref false in
-  let dest = sol.dest |> List.map (fun v ->
+  let points = st.points |> List.map (fun v ->
     if Geometry.line_vertex_relation l v = relation then
       (flipped_at_least_one := true;
        Geometry.flip_vertex l v)
@@ -57,7 +56,7 @@ let apply_dissection target hull_old
   if not !flipped_at_least_one then
     None
   else
-    let hull_new = dest |> Geometry.convex_hull in
+    let hull_new = points |> Geometry.convex_hull in
     let hull_union = Geometry.convex_hull (hull_old @ hull_new) in
     if not (Geometry.hulls_are_equal hull_union hull_old) then
       None
@@ -66,82 +65,46 @@ let apply_dissection target hull_old
       if not (Geometry.hulls_are_equal hull_union hull_new) then
         None
       else
-        Some ({ sol with dest; prev = Some (l, sol) },
-              Geometry.hull_area hull_new)
+        Some ({ points; prev = Some (l, st) }, Geometry.hull_area hull_new)
 
-let apply_best_dissection target (sol: Solution.t) : Solution.t option =
-  let hull = sol.dest |> Geometry.convex_hull in
-  let sects = gen_dissections sol hull in
+let apply_best_dissection target (st: State.t) : State.t option =
+  let hull = st.points |> Geometry.convex_hull in
+  let sects = gen_dissections st hull in
   let forks1 = sects |> List.filter_map (apply_dissection target hull `Above) in
   let forks2 = sects |> List.filter_map (apply_dissection target hull `Below) in
   let best = ref None in
   let min_area = ref num_2 in
-  forks1 @ forks2 |> List.iter (fun (sol, area) ->
+  forks1 @ forks2 |> List.iter (fun (st, area) ->
     if area </ !min_area then
       (min_area := area;
-       best := Some sol));
+       best := Some st));
   !best
 
-let apply_all_dissections target (sol: Solution.t) : unit =
-  let hull = sol.dest |> Geometry.convex_hull in
-  let sects = gen_dissections sol hull in
+let apply_all_dissections target (st: State.t) : unit =
+  let hull = st.points |> Geometry.convex_hull in
+  let sects = gen_dissections st hull in
   let forks1 = sects |> List.filter_map (apply_dissection target hull `Above) in
   let forks2 = sects |> List.filter_map (apply_dissection target hull `Below) in
-  forks1 @ forks2 |> List.iter (fun ((sol: Solution.t), area) ->
-    let line = fst (Option.get sol.prev) in
+  forks1 @ forks2 |> List.iter (fun ((st: State.t), area) ->
+    let line = fst (Option.get st.prev) in
     Printf.printf "line: a = %s, b = %s, c = %s; area = %s%!\n"
       (string_of_num line.a)
       (string_of_num line.b)
       (string_of_num line.c)
       (string_of_num area);
     Drawing.draw_line line;
-    Drawing.draw_solution target sol)
+    Drawing.draw_state target st)
 
-module VSet = Set.Make (struct
-    type t = vertex
-    let compare = compare_vertex
-  end)
-
-let get_flipped_facet (l: line) (sol: Solution.t) (prev: Solution.t) : Solution.facet =
-  let moved = collect (fun push ->
-    sol.dest |> List.iter (fun v ->
-      if Geometry.line_vertex_relation l v = `OnLine then
-        push v);
-    let set = VSet.of_list sol.dest in
-    prev.dest |> List.iter (fun v ->
-      if not (VSet.mem v set) then
-        push v))
-  in
-  Geometry.convex_hull moved
-
-let recover_facets (sol: Solution.t) : Solution.facet list =
-  let facets = ref [] in
-
-  let rec iter (sol: Solution.t) =
-    sol.prev |> Option.may (fun (line, sol_prev) ->
-      let f1 = get_flipped_facet line sol sol_prev in
-      let f1' = flip_poly line f1 in
-      !facets |> List.iter (fun f2 ->
-        Geometry.intersect_hulls f1' f2 |> Option.may (fun f3 ->
-          facets := flip_poly line f3 :: !facets));
-      facets := f1 :: !facets;
-      iter sol_prev)
-  in
-  iter sol;
-
-  let main_facet = Geometry.convex_hull sol.dest in
-  main_facet :: !facets
-
-let rec solve_loop (n: int) target sol : Solution.t =
+let rec solve_loop (n: int) target st : State.t =
   Printf.eprintf "Iteration %d...%!\n" n;
   if n = !iterations then
-    sol
-  else match apply_best_dissection target sol with
-    | Some sol ->
-        solve_loop (Pervasives.succ n) target sol
+    st
+  else match apply_best_dissection target st with
+    | Some st ->
+        solve_loop (Pervasives.succ n) target st
     | None ->
         Printf.eprintf "Iteration %d was the terminal one\n" n;
-        sol
+        st
 
 let () =
   Arg.parse (Arg.align
@@ -153,20 +116,20 @@ let () =
       ("-in", Arg.String (fun s -> input_file := s),
        " Problem");
       ("-out", Arg.String (fun s -> output_file := s),
-       " Solution");
+       " Sotv=lution");
     ])
     (fun _ -> ())
     ("Usage: " ^ Sys.argv.(0) ^ "[options]");
 
   let (sl, sk) = Problem.read_file ~fname:!input_file in
-  if !interactive then
-    Drawing.draw_skeleton sk;
+  (* if !interactive then *)
+  (*   Drawing.draw_skeleton sk; *)
   (* if !interactive then *)
   (*   Drawing.draw_silhouette sl; *)
 
   let target = Geometry.convex_hull (List.concat sl) in
-  if !interactive then
-    Drawing.draw_poly target;
+  (* if !interactive then *)
+  (*   Drawing.draw_poly target; *)
 
   let target =
     match Geometry.fit_poly target with
@@ -174,15 +137,15 @@ let () =
       | None ->
           failwith "Couldn't fit the target!"
   in
-  if !interactive then
-    Drawing.draw_poly target;
+  (* if !interactive then *)
+  (*   Drawing.draw_poly target; *)
 
-  let sol = solve_loop 0 target Solution.default in
+  let st = solve_loop 0 target State.default in
   if !interactive then
-    Drawing.draw_solution target sol;
+    Drawing.draw_state target st;
 
-  let facets = recover_facets sol in
+  let sol = Solution.recover st in
   if !interactive then
-    Drawing.draw_poly_list facets;
+    Drawing.draw_poly_list sol.facets;
 
-  Solution.write_file ~fname:!output_file sol facets
+  Solution.write_file ~fname:!output_file sol
