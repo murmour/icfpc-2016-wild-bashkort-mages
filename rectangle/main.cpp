@@ -76,7 +76,7 @@ void sol()
 		break;
 	}
 
-	A = 14; B = 131; C = 17; D = 245;
+	A = 14; B = 129; C = 17; D = 247;
 
 	vector< pair< PAR, PAR > > coord1, coord2;
 	int ddx = (B+A-1)/A, ddy = (D+C-1)/C;
@@ -107,7 +107,7 @@ void sol()
 	for (int i=0; i < ddx+1; i++)
 		for (int j=0; j < ddy+1; j++)
 		{
-			coord1.push_back( make_pair( make_pair( min(B, i*A), B ), make_pair( min(D, j*C), D ) ) );
+			coord1.push_back( make_pair( make_pair( B-min(B, i*A), B ), make_pair( D-min(D, j*C), D ) ) );
 		}
 
 	for (int i=0; i < ddx+1; i++)
