@@ -154,7 +154,7 @@ let segment_intersection (s1: segment) (s2: segment) : vertex option =
 let triangulate_hull (h: polygon) : triangle list =
   collect (fun push ->
     match h with
-      | v1 :: rest ->
+      | skipped :: v1 :: rest ->
           let rec iter = function
             | v2 :: ((v3 :: _) as rest) ->
                 push (v1, v2, v3);
@@ -166,13 +166,25 @@ let triangulate_hull (h: polygon) : triangle list =
 
 let triangle_is_negative ((a, b, c): triangle) : bool =
   let (x1, y1) = a and (x2, y2) = b and (x3, y3) = c in
-  le_num ((x1 - x3) * (y2 - y3)) ((x2 - x3) * (y1 - y3))
+  lt_num ((x1 - x3)*(y2 - y3)) ((x2 - x3)*(y1 - y3))
+
+let point_on_segment ((ox, oy) as o) ((ax, ay) as a) ((bx, by) as b) =
+  if (ox </ ax && ox </ bx) || (ox >/ ax && ox >/ bx) ||
+     (oy </ ay && oy </ by) || (oy >/ ay && oy >/ by) then
+    false
+  else
+    cross (vec o a) (vec o b) =/ num_0
 
 let point_in_triangle ((a, b, c): triangle) (v: vertex) : bool =
-  let b1 = triangle_is_negative (v, a, b) in
-  let b2 = triangle_is_negative (v, b, c) in
-  let b3 = triangle_is_negative (v, c, a) in
-  (b1 = b2) && (b2 = b3)
+  if point_on_segment v a b ||
+     point_on_segment v b c ||
+     point_on_segment v a c then
+    true
+  else
+    let b1 = triangle_is_negative (v, a, b) in
+    let b2 = triangle_is_negative (v, b, c) in
+    let b3 = triangle_is_negative (v, c, a) in
+    (b1 = b2) && (b2 = b3)
 
 let get_hull_inter_points (h1: polygon) (h2: polygon) : vertex list =
   let h1 = List.tl h1 and h2 = List.tl h2 in
@@ -183,15 +195,14 @@ let get_hull_inter_points (h1: polygon) (h2: polygon) : vertex list =
 
 let intersect_hulls h1 h2 : polygon option =
   let inter_points = get_hull_inter_points h1 h2 in
-  inter_points |> List.iter (fun v ->
-    Printf.printf "%s\n" (print_vertex v));
   let set1 = triangulate_hull h1 in
   let set2 = triangulate_hull h2 in
   let h3 = h1 @ h2 @ inter_points |> List.filter (fun v ->
     set1 |> List.exists (fun t -> point_in_triangle t v) &&
     set2 |> List.exists (fun t -> point_in_triangle t v))
   in
-  if eq_num (hull_area h3) num_0 then
+  let h3 = convex_hull h3 in
+  if hull_area h3 =/ num_0 then
     None
   else
-    Some (convex_hull h3)
+    Some h3
