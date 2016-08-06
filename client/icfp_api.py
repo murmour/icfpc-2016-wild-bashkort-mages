@@ -118,7 +118,7 @@ def parse_problem_fname(fname):
 
 def filter_problems(lowIndex, highIndex):
     files = [ parse_problem_fname(f) for f in listdir("../data/problems") ]
-    filter(None, files)
+    files = filter(None, files)
 
     def is_requested(f):
         return ((f['id'] >= lowIndex) and (f['id'] <= highIndex))
@@ -145,7 +145,7 @@ def parse_solution_fname(fname):
 
 def filter_solutions(tag):
     files = [ parse_solution_fname(f) for f in listdir("../data/solutions") ]
-    filter(None, files)
+    files = filter(None, files)
     files = [ f for f in files if (tag == None or f['tag'] == tag) ]
     files.sort(key = lambda f: f['set_id'])
     return files
