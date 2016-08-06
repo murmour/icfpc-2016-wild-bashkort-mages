@@ -56,12 +56,12 @@ let draw_line_inner (l: line) =
   let open Num in
   let (x1, y1, x2, y2) =
     if l.a =/ num_0 then
-      let y0 = (minus_num l.c) // l.b in
+      let y0 = (minus_num l.c) / l.b in
       let x1 = num_0 in
       let x2 = num_1 in
       (x1, y0, x2, y0)
     else if l.b =/ num_0 then
-      let x0 = (minus_num l.c) // l.a in
+      let x0 = (minus_num l.c) / l.a in
       let y1 = num_0 in
       let y2 = num_1 in
       (x0, y1, x0, y2)

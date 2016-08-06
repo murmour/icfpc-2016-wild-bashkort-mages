@@ -166,7 +166,7 @@ let segment_intersection (s1: segment) (s2: segment) : vertex option =
     None
   else
     let dt = (bx - ax)*(cy - dy) - (cx - dx)*(by - ay) in
-    let t = (num_1 // dt) * ((cx - ax)*(cy - dy) - (cx - dx)*(cy - ay)) in
+    let t = (num_1 / dt) * ((cx - ax)*(cy - dy) - (cx - dx)*(cy - ay)) in
     let x = ax + (bx - ax)*t in
     let y = ay + (by - ay)*t in
     Some (x, y)
