@@ -140,7 +140,7 @@ let rec solve_loop (n: int) target sol : Solution.t =
     | Some sol ->
         solve_loop (Pervasives.succ n) target sol
     | None ->
-        Printf.eprintf "Iteration %d was the terminal one" n;
+        Printf.eprintf "Iteration %d was the terminal one\n" n;
         sol
 
 let () =
