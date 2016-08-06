@@ -25,6 +25,7 @@ def api_get_request(url) -> str:
 
 
 def send_solution(id, fname) -> str:
+    print('Sending %s...' % fname)
     res = subprocess.check_output(
         ['curl',
          '--compressed',
