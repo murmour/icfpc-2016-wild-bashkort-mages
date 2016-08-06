@@ -171,8 +171,6 @@ def solve_problem(executable, p, iters = None):
         return sol.decode('utf-8')
 
     except subprocess.CalledProcessError as ex: # error code <> 0
-        print("--------error--------")
-        print(ex.cmd)
-        print(ex.message)
-        print(ex.returncode)
+        print("-------- Error --------")
+        print(ex)
         return None
