@@ -46,9 +46,9 @@ let draw_poly_inner (p: polygon) =
   List.combine p (rotate p) |> List.iter (fun (v1, v2) ->
     draw_poly_line [| conv_vertex v1; conv_vertex v2 |])
 
-let draw_poly (p: polygon) =
+let draw_poly ?(color = white) (p: polygon) =
   with_canvas (fun () ->
-    set_color white;
+    set_color color;
     set_line_width 1;
     draw_poly_inner p)
 
@@ -111,8 +111,8 @@ let draw_solution (target: polygon) (sol: Solution.t) =
     in
     iter sol)
 
-let draw_poly_list (l: polygon list) =
+let draw_poly_list ?(color = white) (l: polygon list) =
   with_canvas (fun () ->
-    set_color white;
+    set_color color;
     set_line_width 1;
     l |> List.iter draw_poly_inner)

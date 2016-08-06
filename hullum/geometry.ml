@@ -104,10 +104,16 @@ let compute_line ((x1, y1): vertex) ((x2, y2): vertex) : line =
   let c = minus_num (a*x1) - b*y1 in
   { a; b; c }
 
+let cross ((ax, ay): vertex) ((bx, by): vertex) : num =
+  ax*by - ay*bx
+
+let vec ((ax, ay): vertex) ((bx, by): vertex) =
+  (bx - ax, by - ay)
+
 let hull_area (p: polygon) : area =
   let sum = ref num_0 in
-  List.combine p (rotate p) |> List.iter (fun ((x1, y1), (x2, y2)) ->
-    sum := !sum + x1*y2 - x2*y1);
+  List.combine p (rotate p) |> List.iter (fun (v1, v2) ->
+    sum := !sum + cross v1 v2);
   num_1_by_2 * abs_num !sum
 
 let hulls_are_equal (p1: polygon) (p2: polygon) : bool =
@@ -130,19 +136,13 @@ let line_vertex_relation (l: line) ((x, y): vertex) =
   else
     `OnLine
 
-let dot_product ((ax, ay): vertex) ((bx, by): vertex) : num =
-  ax*by - ay*bx
-
-let vec ((ax, ay): vertex) ((bx, by): vertex) =
-  (bx - ax, by - ay)
-
 let segment_intersection (s1: segment) (s2: segment) : vertex option =
   let (a, b) = s1 and (c, d) = s2 in
   let (ax, ay) = a and (bx, by) = b and (cx, cy) = c and (dx, dy) = d in
-  if not ((gt_num (dot_product (vec c b) (vec c d) *
-                   dot_product (vec c d) (vec c a)) num_0) &&
-          (gt_num (dot_product (vec a c) (vec a b) *
-                   dot_product (vec a b) (vec a d)) num_0)) then
+  if not ((gt_num (cross (vec c b) (vec c d) *
+                   cross (vec c d) (vec c a)) num_0) &&
+          (gt_num (cross (vec a c) (vec a b) *
+                   cross (vec a b) (vec a d)) num_0)) then
     None
   else
     let dt = (bx - ax)*(cy - dy) - (cx - dx)*(by - ay) in
@@ -191,4 +191,7 @@ let intersect_hulls h1 h2 : polygon option =
     set1 |> List.exists (fun t -> point_in_triangle t v) &&
     set2 |> List.exists (fun t -> point_in_triangle t v))
   in
-  if h3 = [] then None else Some (convex_hull h3)
+  if eq_num (hull_area h3) num_0 then
+    None
+  else
+    Some (convex_hull h3)
