@@ -45,7 +45,7 @@ let gen_dissections (sol: Solution.t) hull =
 let apply_dissection target hull_old
     (relation: [ `Above | `Below | `OnLine ])
     ((l: line), (sol: Solution.t))
-  : (Solution.t * line * area) option =
+  : (Solution.t * area) option =
   let dest = sol.dest |> List.map (fun v ->
     if Geometry.line_vertex_relation l v = relation then
       Geometry.flip_vertex l v
@@ -61,7 +61,8 @@ let apply_dissection target hull_old
     if not (Geometry.hulls_are_equal hull_union hull_new) then
       None
     else
-      Some ({ sol with dest }, l, Geometry.hull_area hull_new)
+      Some ({ sol with dest; flips = l :: sol.flips },
+            Geometry.hull_area hull_new)
 
 let apply_best_dissection target (sol: Solution.t) : Solution.t option =
   let hull = sol.dest |> Geometry.convex_hull in
@@ -70,7 +71,7 @@ let apply_best_dissection target (sol: Solution.t) : Solution.t option =
   let forks2 = sects |> List.filter_map (apply_dissection target hull `Below) in
   let best = ref None in
   let min_area = ref num_2 in
-  forks1 @ forks2 |> List.iter (fun (sol, line, area) ->
+  forks1 @ forks2 |> List.iter (fun (sol, area) ->
     if area </ !min_area then
       (min_area := area;
        best := Some sol));
@@ -81,7 +82,8 @@ let apply_all_dissections target (sol: Solution.t) : unit =
   let sects = gen_dissections sol hull in
   let forks1 = sects |> List.filter_map (apply_dissection target hull `Above) in
   let forks2 = sects |> List.filter_map (apply_dissection target hull `Below) in
-  forks1 @ forks2 |> List.iter (fun (sol, line, area) ->
+  forks1 @ forks2 |> List.iter (fun ((sol: Solution.t), area) ->
+    let line = List.hd sol.flips in
     Printf.printf "line: a = %s, b = %s, c = %s; area = %s%!\n"
       (string_of_num line.a)
       (string_of_num line.b)
