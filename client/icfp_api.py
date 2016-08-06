@@ -105,6 +105,26 @@ def write_latest_problem_specs() -> json:
                 f.write(spec)
 
 
+problem_name_rx = re.compile('(?P<id>[0-9]+).in')
+
+def parse_problem_fname(fname):
+    m = re.match(problem_name_rx, fname)
+    return { 'fname': '../data/problems/' + fname,
+             'id': int(m.group('id')) }
+
+
+def filter_problems(lowIndex, highIndex):
+    files = [ parse_problem_fname(f) for f in listdir("../data/problems")
+              if f.endswith('.in') ]
+
+    def is_requested(f):
+        return ((f['id'] >= lowIndex) and (f['id'] <= highIndex))
+
+    files = [ f for f in files if is_requested(f) ]
+    files.sort(key = lambda f: f['id'])
+    return files
+
+
 solution_name_rx = re.compile('solution_'
                               '(?P<set_id>[0-9]+)_'
                               r'(?P<tag>[a-z0-9\-]+)_'
@@ -137,3 +157,22 @@ def send_all_solutions(tag):
         print(response_fname)
         with io.open(response_fname, 'wt') as f:
             f.write(json.dumps(response))
+
+
+def solve_problem(executable, p, iters = None):
+    print('Solving problem %s with %s...' % (p['id'], executable))
+    try:
+        if iters is None:
+            sol = subprocess.check_output([executable, "-in", p['fname']])
+        else:
+            sol = subprocess.check_output([executable, "-in", p['fname'],
+                                           "-iterations", iters])
+        print('ok')
+        return sol.decode('utf-8')
+
+    except subprocess.CalledProcessError as ex: # error code <> 0
+        print("--------error--------")
+        print(ex.cmd)
+        print(ex.message)
+        print(ex.returncode)
+        return None
