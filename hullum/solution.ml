@@ -37,15 +37,11 @@ let get_flipped_facet (l: line) (st: State.t) (prev: State.t) : facet =
 
 
 let recover (st: State.t) : t =
-  let facets = ref [] in
+  let facets = ref [ Geometry.convex_hull st.points ] in
 
   let vmap = ref VMap.empty in
   st.points |> List.iter (fun v ->
     vmap := VMap.add v v !vmap);
-
-  let add_facet f =
-    facets := f :: !facets
-  in
 
   let add_flipped_facet (l: line) f =
     let f =
@@ -64,8 +60,6 @@ let recover (st: State.t) : t =
     facets := f :: !facets
   in
 
-  add_facet (Geometry.convex_hull st.points);
-
   let rec iter (st: State.t) =
     st.prev |> Option.may (fun (line, st_prev) ->
       let f1 = get_flipped_facet line st st_prev in
@@ -73,7 +67,6 @@ let recover (st: State.t) : t =
       !facets |> List.iter (fun f2 ->
         Geometry.intersect_hulls f1' f2 |> Option.may (fun f3 ->
           add_flipped_facet line f3));
-      add_facet f1;
       iter st_prev)
   in
   iter st;
