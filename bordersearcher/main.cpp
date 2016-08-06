@@ -53,9 +53,10 @@ int cur_p[1005], c_sz = 0;
 double pi = acos(-1.);
 double pi2 = pi*0.5;
 
-int T = 10000;
+int T = 10;
 int P = 10000;
 int Strip = -1;
+clock_t start_t;
 
 bool debug = true;
 
@@ -95,7 +96,7 @@ void p_search( double L )
 		}
 	if ( L > 1.-eps ) return;
 
-	if (clock() > T) exit(1);
+	if (clock()-start_t > T*CLOCKS_PER_SEC) exit(1);
 	if (SZ(paths) > P) exit(2);
 
 	int v = cur_p[c_sz-1];
@@ -125,7 +126,7 @@ void dfs( int v, int i, int j, double A )
 	}
 	if ( A > pi ) return;
 
-	if (clock() > T) exit(1);
+	if (clock()-start_t > T*CLOCKS_PER_SEC) exit(1);
 
 	int p1 = (j+1)%SZ(E[v]);
 	int p2 = (j+SZ(E[v])-1)%SZ(E[v]);
@@ -145,7 +146,7 @@ void dfs2( int v, int i, int j, double A )
 	}
 	if ( A > pi2 ) return;
 
-	if (clock() > T) exit(1);
+	if (clock()-start_t > T*CLOCKS_PER_SEC) exit(1);
 
 	int p1 = (j+1)%SZ(E[v]);
 	int p2 = (j+SZ(E[v])-1)%SZ(E[v]);
@@ -220,7 +221,7 @@ void sol()
 					FA(d,paths) if (factor[d]==1) if (p_next( paths[c], paths[d] ))
 						if (p_next( paths[d], paths[a] ))
 						{
-							if (clock() > T) exit(1);
+							if (clock()-start_t > T*CLOCKS_PER_SEC) exit(1);
 
 							//cout << a << " " << b << " " << c << " " << d << "\n";
 							VI ind = VI(4);
@@ -342,6 +343,7 @@ int main(int argc, char** argv)
 	System::ParseArgs(argc, argv);
 
 	int a = 28;
+	start_t = clock();
 	//FOR(a,98,101) if (a!=24 && a!=30 && a!=32 && a!=33 && a!=83 && a!=84 && a!=85 && a!=86 && a!=88 &&
 	//	a!=89 && a!=90 && a!=92 && a!=101)
 	//	if (!(11<=a && a<=16) && !(38<=a && a<=44) && a!=46 && a!=47 && a!=53 && a!=54)
@@ -353,7 +355,7 @@ int main(int argc, char** argv)
 		{
 			cout << "  in  - input file\n"
 				<<  "  out - output file\n"
-				<<  "  t   - time limit (default " << T << ")\n"
+				<<  "  t   - time limit (default " << T << "s)\n"
 				<<  "  p   - limit for number of paths (default " << P << ")\n"
 				<<  "  s   - limit for strip\n";
 			cout << "Exit(1) = Time Limit Exceeded\n";
