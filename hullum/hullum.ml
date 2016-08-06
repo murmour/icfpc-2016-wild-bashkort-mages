@@ -61,7 +61,7 @@ let apply_dissection target hull_old
     if not (Geometry.hulls_are_equal hull_union hull_new) then
       None
     else
-      Some ({ sol with dest; flips = l :: sol.flips },
+      Some ({ sol with dest; prev = Some (l, sol) },
             Geometry.hull_area hull_new)
 
 let apply_best_dissection target (sol: Solution.t) : Solution.t option =
@@ -83,7 +83,7 @@ let apply_all_dissections target (sol: Solution.t) : unit =
   let forks1 = sects |> List.filter_map (apply_dissection target hull `Above) in
   let forks2 = sects |> List.filter_map (apply_dissection target hull `Below) in
   forks1 @ forks2 |> List.iter (fun ((sol: Solution.t), area) ->
-    let line = List.hd sol.flips in
+    let line = fst (Option.get sol.prev) in
     Printf.printf "line: a = %s, b = %s, c = %s; area = %s%!\n"
       (string_of_num line.a)
       (string_of_num line.b)

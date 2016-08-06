@@ -1,6 +1,7 @@
 
-open Geometry
+open Batteries
 open Graphics
+open Geometry
 open Utils
 
 
@@ -103,4 +104,9 @@ let draw_solution (target: polygon) (sol: Solution.t) =
 
     set_color green;
     set_line_width 1;
-    sol.flips |> List.iter draw_line_inner)
+    let rec iter (sol: Solution.t) =
+      sol.prev |> Option.may (fun (line, sol) ->
+        draw_line_inner line;
+        iter sol)
+    in
+    iter sol)

@@ -3,7 +3,7 @@ type t =
   {
     source: Geometry.vertex list;
     dest: Geometry.vertex list;
-    flips: Geometry.line list;
+    prev: (Geometry.line * t) option;
   }
 
 
