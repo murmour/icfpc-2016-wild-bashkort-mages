@@ -49,6 +49,8 @@ int cur_p[1005], c_sz = 0;
 double pi = acos(-1.);
 double pi2 = pi*0.5;
 
+bool F[1005];
+
 double get_dist( int i, int j )
 {
 	double dx = X[i]-X[j], dy = Y[i]-Y[j];
@@ -147,8 +149,21 @@ bool p_next( VI & v1, VI & v2 )
 	return can2[u][ii][jj];
 }
 
+void sort_them()
+{
+	FOR(a,0,n-1)
+	{
+		vector< pair< double, int > > V;
+		FA(b,E[a]) V.push_back( make_pair( atan2( Y[E[a][b]]-Y[a], X[E[a][b]]-X[a] ), E[a][b] ) );
+		sort( V.begin(), V.end() );
+		FA(b,V) E[a][b] = V[b].SE;
+	}
+}
+
 void sol()
 {
+	sort_them();
+
 	CLR( can );
 	CLR( can2 );
 	CLR( canbe );
@@ -206,22 +221,99 @@ void sol()
 						Map[ mi ] = ind;
 				}
 
+	cout << "\n";
 	cout << SZ( Map ) << "\n";
+	cout << "\n";
 	for ( map< vector< VI >, VI >::iterator it = Map.begin(); it != Map.end(); it++ )
 	{
-		FA(a,it->second) cout << it->second[a] << " ";
-		cout << "\n";
+		CLR(F);
+		VI vec;
+		FOR(a,0,3) FA(b,it->first[a])
+		{
+			F[it->first[a][b]] = true;
+			if (b) vec.push_back( it->first[a][b] );
+		}
+
+		map< int, set< int > > S;
+		
+		vec.push_back( vec[0] );
+		vec.push_back( vec[1] );
+
+		FA(a,vec) if (a && a!=SZ(vec)-1)
+			if (SZ(E[vec[a]])==3)
+				FA(b,E[vec[a]]) if (E[vec[a]][b]!=vec[a-1] && E[vec[a]][b]!=vec[a+1])
+				{
+					int ii = vec[a], jj = b;
+					while(1)
+					{
+						if (!F[E[ii][jj]])
+						{
+							//Set.insert( make_pair( E[ii][jj], vec[a] ) );
+							S[E[ii][jj]].insert( vec[a] );
+							break;
+						}
+						int pre = 0;
+						FA(c,E[E[ii][jj]]) if (E[E[ii][jj]][c]==ii)
+						{
+							pre = c;
+							break;
+						}
+						bool flag = false;
+						FA(c,E[E[ii][jj]]) //if (can[E[ii][jj]][pre][c])
+							if ( fabs(get_angle( E[E[ii][jj]][pre], E[ii][jj], E[E[ii][jj]][c] )-pi) < eps )
+							{
+								flag = true;
+								ii = E[ii][jj];
+								jj = c;
+								break;
+							}
+						if (!flag) break;
+					}
+				}
+
+		bool megaflag = true;
+
+		//if (SZ(S)==0) megafrag = false;
+		for (map< int, set< int > >::iterator it2 = S.begin(); it2 != S.end(); it2++)
+		{
+			set< int > ss = it2->second;
+			if (SZ(ss)<2) megaflag = false;
+		}
+
+		if (megaflag)
+		{
+			FA(a,it->second) cout << it->second[a] << " ";
+			cout << "\n";
+
+			cout << SZ(S) << "\n";
+			for (map< int, set< int > >::iterator it2 = S.begin(); it2 != S.end(); it2++)
+			{
+				set< int > ss = it2->second;
+				cout << it2->first << " " << SZ(ss) << "  ";
+				ass( SZ(ss)>=2 );
+				for (set< int >::iterator it3 = ss.begin(); it3 != ss.end(); it3++)
+					cout << (*it3) << " ";
+				//FA(a,vec) cout << vec[a] << " ";
+				cout << "\n";
+			}
+
+			cout << "\n";
+		}
 	}
 
-	//FOR(a,0,n-1) FA(b,E[a]) FA(c,E[a])
-	//	if (can2[a][b][c])
-	//		cout << a << ": " << E[a][b] << "-" << E[a][c] << "\n";
+	cout << "-1 -1 -1 -1\n";
+
+	/*FOR(a,0,n-1) FA(b,E[a]) FA(c,E[a])
+		if (can[a][b][c])
+			cout << a << ": " << E[a][b] << "-" << E[a][c] << "\n";*/
 }
 
 int main()
 {
-	FOR(a,1,101) if (a!=24 && a!=30 && a!=32 && a!=33 && a!=83 && a!=84 && a!=85 && a!=86 && a!=88 &&
-		a!=89 && a!=90 && a!=92 && a!=101)
+	//FOR(a,98,101) if (a!=24 && a!=30 && a!=32 && a!=33 && a!=83 && a!=84 && a!=85 && a!=86 && a!=88 &&
+	//	a!=89 && a!=90 && a!=92 && a!=101)
+	//	if (!(11<=a && a<=16) && !(38<=a && a<=44) && a!=46 && a!=47 && a!=53 && a!=54)
+	FOR(a,52,52)
 	{
 		cerr << a << "\n";
 		char ch[100];
@@ -230,6 +322,7 @@ int main()
 
 		sprintf( ch, "../data/problems/%d.p", a );
 		freopen( ch, "w", stdout );
+		//freopen( "output.txt", "w", stdout );
 
 		paths.clear();
 
