@@ -33,9 +33,12 @@ let gen_dissections (sol: Solution.t) hull =
       vertexes |> List.iter (fun (kind2, v2) ->
         if Geometry.compare_vertex v1 v2 > 0 then
           begin
+            let add_vertex (sol: Solution.t) v =
+              { sol with source = v :: sol.source; dest = v :: sol.dest }
+            in
             let line = Geometry.compute_line v1 v2 in
-            let sol = if kind1 = `New then (v1, v1) :: sol else sol in
-            let sol = if kind2 = `New then (v2, v2) :: sol else sol in
+            let sol = if kind1 = `New then add_vertex sol v1 else sol in
+            let sol = if kind2 = `New then add_vertex sol v2 else sol in
             push (line, sol)
           end)))
 
@@ -43,14 +46,13 @@ let apply_dissection target hull_old
     (relation: [ `Above | `Below | `OnLine ])
     ((l: line), (sol: Solution.t))
   : (Solution.t * line * area) option =
-  let sol' = sol |> List.map (fun (v1, v0) ->
-    if Geometry.line_vertex_relation l v1 = relation then
-      let v1' = Geometry.flip_vertex l v1 in
-      (v1', v0)
+  let dest = sol.dest |> List.map (fun v ->
+    if Geometry.line_vertex_relation l v = relation then
+      Geometry.flip_vertex l v
     else
-      (v1, v0))
+      v)
   in
-  let hull_new = sol' |> List.map fst |> Geometry.convex_hull in
+  let hull_new = dest |> Geometry.convex_hull in
   let hull_union = Geometry.convex_hull (hull_old @ hull_new) in
   if not (Geometry.hulls_are_equal hull_union hull_old) then
     None
@@ -59,10 +61,10 @@ let apply_dissection target hull_old
     if not (Geometry.hulls_are_equal hull_union hull_new) then
       None
     else
-      Some (sol', l, Geometry.hull_area hull_new)
+      Some ({ sol with dest }, l, Geometry.hull_area hull_new)
 
-let apply_best_dissection target sol : Solution.t option =
-  let hull = sol |> List.map fst |> Geometry.convex_hull in
+let apply_best_dissection target (sol: Solution.t) : Solution.t option =
+  let hull = sol.dest |> Geometry.convex_hull in
   let sects = gen_dissections sol hull in
   let forks1 = sects |> List.filter_map (apply_dissection target hull `Above) in
   let forks2 = sects |> List.filter_map (apply_dissection target hull `Below) in
@@ -74,8 +76,8 @@ let apply_best_dissection target sol : Solution.t option =
        best := Some sol));
   !best
 
-let apply_all_dissections target sol : unit =
-  let hull = sol |> List.map fst |> Geometry.convex_hull in
+let apply_all_dissections target (sol: Solution.t) : unit =
+  let hull = sol.dest |> Geometry.convex_hull in
   let sects = gen_dissections sol hull in
   let forks1 = sects |> List.filter_map (apply_dissection target hull `Above) in
   let forks2 = sects |> List.filter_map (apply_dissection target hull `Below) in
@@ -114,8 +116,8 @@ let () =
     ("Usage: " ^ Sys.argv.(0) ^ "[options]");
 
   let (sl, sk) = Problem.read_file ~fname:!input_file in
-  (* if !interactive then *)
-  (*   Drawing.draw_skeleton sk; *)
+  if !interactive then
+    Drawing.draw_skeleton sk;
   if !interactive then
     Drawing.draw_silhouette sl;
 
@@ -135,4 +137,5 @@ let () =
   let sol = solve_loop 0 target Solution.default in
   if !interactive then
     Drawing.draw_solution target sol;
-  Solution.write_file ~fname:!output_file sol
+  if !output_file <> "" then
+    Solution.write_file ~fname:!output_file sol

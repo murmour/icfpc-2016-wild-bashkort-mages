@@ -4,7 +4,12 @@ open Utils
 open Printf
 
 
-type t = (Geometry.vertex * Geometry.vertex) list
+type t =
+  {
+    source: Geometry.vertex list;
+    dest: Geometry.vertex list;
+    flips: Geometry.line list;
+  }
 
 
 let write_file ~fname sol =
@@ -13,23 +18,28 @@ let write_file ~fname sol =
     fprintf cout "%s,%s " (Num.string_of_num x) (Num.string_of_num y)
   in
 
-  let orig = sol |> List.map snd in
-  fprintf cout "%d\n" (List.length sol);
-  orig |> List.iter print_vertex;
+  fprintf cout "%d\n" (List.length sol.source);
+  sol.source |> List.iter print_vertex;
   fprintf cout "\n";
 
   fprintf cout "1\n";
-  let hull = sol |> List.map fst |> Geometry.convex_hull in
+  let hull = sol.dest |> Geometry.convex_hull in
   fprintf cout "%d " (List.length hull);
   hull |> List.tl |> List.iter (fun v ->
-    let i = List.index_ofq v orig |> Option.get in
+    let i = List.index_ofq v sol.source |> Option.get in
     fprintf cout "%d " i);
   fprintf cout "\n";
 
-  sol |> List.iter (fst %> print_vertex);
+  sol.dest |> List.iter print_vertex;
   fprintf cout "\n"
 
 
+let square =
+  [ (num_0, num_0); (num_0, num_1); (num_1, num_0); (num_1, num_1) ]
+
 let default =
-  List.map (fun v -> (v, v))
-    [ (num_0, num_0); (num_0, num_1); (num_1, num_0); (num_1, num_1) ]
+  {
+    source = square;
+    dest = square;
+    flips = [];
+  }
