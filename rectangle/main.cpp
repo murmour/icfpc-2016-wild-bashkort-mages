@@ -30,7 +30,7 @@ using namespace std;
 
 #define LL long long
 #define VI  vector<int>
-#define PAR pair<int ,int>
+#define PAR pair< LL ,LL >
 #define o_O 1000000000
 
 void __never(int a){printf("\nOPS %d", a);}
@@ -39,7 +39,7 @@ void __never(int a){printf("\nOPS %d", a);}
 double eps = 0.000001;
 double DX, DY;
 
-int gcd( int x, int y )
+LL gcd( LL x, LL y )
 {
 	if (x<0) x=-x;
 	if (y<0) y=-y;
@@ -47,9 +47,9 @@ int gcd( int x, int y )
 	return x+y;
 }
 
-void printx( int a, int b )
+void printx( LL a, LL b )
 {
-	int g = gcd( a, b );
+	LL g = gcd( a, b );
 	a /= g; b /= g;
 	if (b<0)
 	{
@@ -62,8 +62,8 @@ void printx( int a, int b )
 
 void sol()
 {
-	int A, B, C, D;
-	FOR(a,1,1000) FOR(b,1,1000) if ( fabs((double)a/b-DX) < eps )
+	LL A, B, C, D;
+	/*FOR(a,1,1000) FOR(b,1,1000) if ( fabs((double)a/b-DX) < eps )
 	{
 		A = a;
 		B = b;
@@ -74,15 +74,23 @@ void sol()
 		C = a;
 		D = b;
 		break;
-	}
+	}*/
 
-	A = 14; B = 129; C = 17; D = 247;
+	//A = 999999999999995; B = A*13+100000012; C = 999999999999995; D = C*13+100000012;
+	//A = 479887358674887; B = A*5+112; //C = 9999077; D = C*7+1116;
+	//A = 199191999799187; B = A*6+1117;
+	//A = 2; B = 5;
+	C = A; D = B;
+	//A = 2; B = A+1; C = 2; D = C+1;
+
+	ass( A==C && B==D );
 
 	vector< pair< PAR, PAR > > coord1, coord2;
-	int ddx = (B+A-1)/A, ddy = (D+C-1)/C;
-	map< int, int > Map;
-	for (int i=0; i < ddx; i++)
-		for (int j=0; j < ddy; j++)
+	LL ddx = (B+A-1)/A, ddy = (D+C-1)/C;
+	ass( (ddx & 1)==1 && (ddy & 1)==1 );
+	map< LL, LL > Map;
+	for (LL i=0; i < ddx; i++)
+		for (LL j=0; j < ddy; j++)
 		{
 			//cout << 4 << " " << i*(ddy+1)+j << " " << (i+1)*(ddy+1)+j << " "
 			//	<< (i+1)*(ddy+1)+j+1 << " " << i*(ddy+1)+j+1 << "\n";
@@ -90,14 +98,27 @@ void sol()
 			Map[(i+1)*(ddy+1)+j]++;
 			Map[(i+1)*(ddy+1)+j+1]++;
 			Map[i*(ddy+1)+j+1]++;
+			if (i<ddx && j<ddy)
+			{
+				if (((i+j)&1)==0)
+				{
+					Map[(i+1)*(ddy+1)+j]++;
+					Map[i*(ddy+1)+j+1]++;
+				}
+				else
+				{
+					Map[i*(ddy+1)+j]++;
+					Map[(i+1)*(ddy+1)+j+1]++;
+				}
+			}
 		}
 	vector< PAR > vv;
-	for ( map< int, int >::iterator it = Map.begin(); it != Map.end(); it++ )
+	for ( map< LL, LL >::iterator it = Map.begin(); it != Map.end(); it++ )
 		vv.push_back( make_pair( it->second, it->first ) );
 	sort( vv.begin(), vv.end() );
 	reverse( vv.begin(), vv.end() );
 	Map.clear();
-	map< int, int > iMap;
+	map< LL, LL > iMap;
 	FA(a,vv)
 	{
 		//cout << "[" << vv[a].second << " " << a << "] ";
@@ -123,27 +144,62 @@ void sol()
 	cout << (ddx+1) * (ddy+1) << "\n";
 	FOR(a,0,SZ(Map)-1)
 	{
-		pair< PAR, PAR > pp = coord1[iMap[a]];
+		pair< PAR, PAR > pp = coord1[(int)iMap[a]];
 		printx( pp.FI.FI, pp.FI.SE );
 		cout << ",";
 		printx( pp.SE.FI, pp.SE.SE );
 		cout << "\n";
 	}
-	cout << ddx * ddy << "\n";
+	cout << ddx * ddy + (ddx-1) * (ddy-1) << "\n";
 	for (int i=0; i < ddx; i++)
 		for (int j=0; j < ddy; j++)
 		{
 			//cout << 4 << " " << i*(ddy+1)+j << " " << (i+1)*(ddy+1)+j << " "
 			//	<< (i+1)*(ddy+1)+j+1 << " " << i*(ddy+1)+j+1 << "\n";
-			cout << 4 << " ";
-			cout << Map[i*(ddy+1)+j] << " ";
-			cout << Map[(i+1)*(ddy+1)+j] << " ";
-			cout << Map[(i+1)*(ddy+1)+j+1] << " ";
-			cout << Map[i*(ddy+1)+j+1] << "\n";
+			if (i<ddx-1 && j<ddy-1)
+			{
+				if (((i+j)&1)==0)
+				{
+					cout << 3 << " ";
+					cout << Map[i*(ddy+1)+j] << " ";
+					cout << Map[(i+1)*(ddy+1)+j] << " ";
+					cout << Map[i*(ddy+1)+j+1] << "\n";
+
+					cout << 3 << " ";
+					cout << Map[(i+1)*(ddy+1)+j] << " ";
+					cout << Map[(i+1)*(ddy+1)+j+1] << " ";
+					cout << Map[i*(ddy+1)+j+1] << "\n";
+				}
+				else
+				{
+					cout << 3 << " ";
+					cout << Map[i*(ddy+1)+j] << " ";
+					cout << Map[(i+1)*(ddy+1)+j] << " ";
+					cout << Map[(i+1)*(ddy+1)+j+1] << "\n";
+					
+					cout << 3 << " ";
+					cout << Map[i*(ddy+1)+j] << " ";
+					cout << Map[(i+1)*(ddy+1)+j+1] << " ";
+					cout << Map[i*(ddy+1)+j+1] << "\n";
+				}
+			}
+			else
+			{
+				cout << 4 << " ";
+				cout << Map[i*(ddy+1)+j] << " ";
+				cout << Map[(i+1)*(ddy+1)+j] << " ";
+				cout << Map[(i+1)*(ddy+1)+j+1] << " ";
+				cout << Map[i*(ddy+1)+j+1] << "\n";
+			}
 		}
 	FOR(a,0,SZ(Map)-1)
 	{
-		pair< PAR, PAR > pp = coord2[iMap[a]];
+		pair< PAR, PAR > pp = coord2[(int)iMap[a]];
+		if (pp.FI.FI==A && pp.SE.FI==C)
+		{
+			pp.FI.FI=0;
+			pp.SE.FI=0;
+		}
 		printx( pp.FI.FI, pp.FI.SE );
 		cout << ",";
 		printx( pp.SE.FI, pp.SE.SE );
