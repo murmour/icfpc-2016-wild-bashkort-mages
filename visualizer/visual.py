@@ -135,7 +135,7 @@ class TileWidget(QtGui.QWidget):
         
         if not os.path.exists(fname + 'd'):
         #if True:        
-            with io.open(fname + 'd2', 'wt') as f:
+            with io.open(fname + 'd', 'wt') as f:
                 f.write('%d\n' % len(allpts))
                 for p in allpts:
                     t = transp(p, p0)
