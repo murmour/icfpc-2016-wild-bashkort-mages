@@ -7,6 +7,7 @@ import io
 import time
 import json
 from os import listdir
+import os.path
 
 
 api_key = '149-9813263d3c764afad44eeebcb61a4cd8'
@@ -94,10 +95,14 @@ def get_latest_problems() -> json:
 def write_latest_problem_specs() -> json:
     print('Writing latest problem specs...')
     for p in get_latest_problems():
-        spec = get_blob(p['problem_spec_hash'])
         fname = '../data/problems/%s.in' % p['problem_id']
-        with open(fname, 'w') as f:
-            f.write(spec)
+        if os.path.isfile(fname):
+            print('We already have problem %d.' % p['problem_id'])
+        else:
+            print('Getting problem %d...' % p['problem_id'])
+            spec = get_blob(p['problem_spec_hash'])
+            with io.open(fname, 'w') as f:
+                f.write(spec)
 
 
 solution_name_rx = re.compile('solution_'
@@ -124,5 +129,11 @@ def send_all_solutions(tag):
     for f in filtered:
         response = send_solution(f['set_id'], f['fname'])
         if response is None:
+            print('There was no response!')
             return
         print(response)
+
+        response_fname = f['fname'] + '.response'
+        print(response_fname)
+        with io.open(response_fname, 'wt') as f:
+            f.write(json.dumps(response))
