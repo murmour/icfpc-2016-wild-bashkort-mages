@@ -20,6 +20,8 @@ type triangle = vertex * vertex * vertex
 
 val compare_vertex: vertex -> vertex -> int
 
+val equal_vertexes: vertex -> vertex -> bool
+
 val print_vertex: vertex -> string
 
 val convex_hull: vertex list -> polygon
@@ -50,3 +52,5 @@ val cross: vector -> vector -> Num.num
 
 val line_hull_intersection: line -> polygon ->
   [ `New of vertex | `Existing of vertex ] list
+
+val is_poly_edge: polygon -> segment -> bool

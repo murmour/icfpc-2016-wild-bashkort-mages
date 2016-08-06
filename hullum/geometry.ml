@@ -30,6 +30,9 @@ let compare_vertex (x1, y1) (x2, y2) =
     | etc ->
         etc
 
+let equal_vertexes v1 v2 =
+  compare_vertex v1 v2 = 0
+
 let print_vertex (x, y) =
   Printf.sprintf "%s,%s" (string_of_num x) (string_of_num y)
 
@@ -143,7 +146,7 @@ let hulls_are_equal (p1: polygon) (p2: polygon) : bool =
     | (_, []) | ([], _) ->
         false
     | (v1 :: v1s, v2 :: v2s) ->
-        if compare_vertex v1 v2 = 0 then iter (v1s, v2s) else false
+        if equal_vertexes v1 v2 then iter (v1s, v2s) else false
   in
   iter (p1, p2)
 
@@ -230,13 +233,13 @@ let intersect_hulls h1 h2 : polygon option =
 let gen_huge_segment (l: line) : segment =
   if l.a =/ num_0 then
     let y0 = (minus_num l.c) / l.b in
-    ((num_0, y0), (num_1, y0))
+    ((num_neg2, y0), (num_2, y0))
   else if l.b =/ num_0 then
     let x0 = (minus_num l.c) / l.a in
-    ((x0, num_0), (x0, num_1))
+    ((x0, num_neg2), (x0, num_2))
   else
-    ((num_0, get_line_y_by_x l num_0),
-     (num_1, get_line_y_by_x l num_1))
+    ((num_neg2, get_line_y_by_x l num_neg2),
+     (num_2, get_line_y_by_x l num_2))
 
 let point_on_line ((x, y): vertex) (l: line) : bool =
   l.a*x + l.b*y + l.c =/ num_0
@@ -251,3 +254,14 @@ let line_hull_intersection (l: line) (h: polygon) =
       else
         segment_intersection seg1 seg2 |> Option.may (fun v ->
           push (`New v))))
+
+let polymorphic_segments ((v1, v2): segment) ((v3, v4): segment) : bool =
+  (equal_vertexes v1 v3 && equal_vertexes v2 v4) ||
+  (equal_vertexes v1 v4 && equal_vertexes v2 v3)
+
+let is_poly_edge (p: polygon) (s: segment) : bool =
+  Return.label (fun l ->
+    List.combine p (rotate p) |> List.iter (fun s' ->
+      if polymorphic_segments s s' then
+        Return.return l true);
+    false)
