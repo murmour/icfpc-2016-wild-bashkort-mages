@@ -248,6 +248,8 @@ void sol()
 						}
 	}
 
+	if (SZ( Map )==0) exit(3);
+
 	cout << "\n";
 	cout << SZ( Map ) << "\n";
 	cout << "\n";
@@ -354,7 +356,9 @@ int main(int argc, char** argv)
 				<<  "  t   - time limit (default " << T << ")\n"
 				<<  "  p   - limit for number of paths (default " << P << ")\n"
 				<<  "  s   - limit for strip\n";
-			cout << "Exit(1) = Time Limit Exceeded, Exit(2) = Paths Limit Exceeded\n";
+			cout << "Exit(1) = Time Limit Exceeded\n";
+			cout << "Exit(2) = Paths Limit Exceeded\n";
+			cout << "Exit(3) = No borders found\n";
 			return 0;
 		}
 
