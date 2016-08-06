@@ -3,6 +3,8 @@ type vertex = Num.num * Num.num
 
 type segment = vertex * vertex
 
+type vector = Num.num * Num.num
+
 type polygon = vertex list
 
 type line = { a: Num.num; b: Num.num; c: Num.num }
@@ -31,3 +33,5 @@ val hulls_are_equal: polygon -> polygon -> bool
 val line_vertex_relation: line -> vertex -> [ `OnLine | `Above | `Below ]
 
 val intersect_hulls: polygon -> polygon -> polygon option
+
+val cross: vector -> vector -> Num.num

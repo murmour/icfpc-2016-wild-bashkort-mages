@@ -8,9 +8,11 @@ type vertex = num * num
 
 type segment = vertex * vertex
 
+type vector = num * num
+
 type polygon = vertex list
 
-type line = { a: Num.num; b: Num.num; c: Num.num }
+type line = { a: num; b: num; c: num }
 
 type area = num
 
@@ -104,7 +106,7 @@ let compute_line ((x1, y1): vertex) ((x2, y2): vertex) : line =
   let c = minus_num (a*x1) - b*y1 in
   { a; b; c }
 
-let cross ((ax, ay): vertex) ((bx, by): vertex) : num =
+let cross ((ax, ay): vector) ((bx, by): vector) : num =
   ax*by - ay*bx
 
 let vec ((ax, ay): vertex) ((bx, by): vertex) =

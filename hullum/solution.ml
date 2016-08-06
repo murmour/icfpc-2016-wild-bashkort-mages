@@ -98,7 +98,8 @@ let write_file ~fname (sol: t) =
     let f = List.tl f in
     fprintf cout "%d " (List.length f);
     f |> List.iter (fun v ->
-      let (i, _) = List.findi (fun i v' -> Geometry.compare_vertex v v' = 0) source in
+      let (i, _) = List.findi (fun i v' ->
+        Geometry.compare_vertex v v' = 0) source in
       fprintf cout "%d " i);
     fprintf cout "\n");
 
