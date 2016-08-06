@@ -109,13 +109,16 @@ problem_name_rx = re.compile('(?P<id>[0-9]+).in$')
 
 def parse_problem_fname(fname):
     m = re.match(problem_name_rx, fname)
-    return { 'fname': '../data/problems/' + fname,
-             'id': int(m.group('id')) }
+    if m is None:
+        return None
+    else:
+        return { 'fname': '../data/problems/' + fname,
+                 'id': int(m.group('id')) }
 
 
 def filter_problems(lowIndex, highIndex):
-    files = [ parse_problem_fname(f) for f in listdir("../data/problems")
-              if f.endswith('.in') ]
+    files = [ parse_problem_fname(f) for f in listdir("../data/problems") ]
+    filter(None, files)
 
     def is_requested(f):
         return ((f['id'] >= lowIndex) and (f['id'] <= highIndex))
@@ -132,13 +135,17 @@ solution_name_rx = re.compile('solution_'
 
 def parse_solution_fname(fname):
     m = re.match(solution_name_rx, fname)
-    return { 'fname': '../data/solutions/' + fname,
-             'set_id': int(m.group('set_id')),
-             'tag': '%s_%s' % (m.group('tag'), m.group('version')) }
+    if m is None:
+        return None
+    else:
+        return { 'fname': '../data/solutions/' + fname,
+                 'set_id': int(m.group('set_id')),
+                 'tag': '%s_%s' % (m.group('tag'), m.group('version')) }
 
 
 def filter_solutions(tag):
     files = [ parse_solution_fname(f) for f in listdir("../data/solutions") ]
+    filter(None, files)
     files = [ f for f in files if (tag == None or f['tag'] == tag) ]
     files.sort(key = lambda f: f['set_id'])
     return files
