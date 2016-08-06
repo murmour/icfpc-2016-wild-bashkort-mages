@@ -105,7 +105,7 @@ def write_latest_problem_specs() -> json:
                 f.write(spec)
 
 
-problem_name_rx = re.compile('(?P<id>[0-9]+).in')
+problem_name_rx = re.compile('(?P<id>[0-9]+).in$')
 
 def parse_problem_fname(fname):
     m = re.match(problem_name_rx, fname)
@@ -128,7 +128,7 @@ def filter_problems(lowIndex, highIndex):
 solution_name_rx = re.compile('solution_'
                               '(?P<set_id>[0-9]+)_'
                               r'(?P<tag>[a-z0-9\-]+)_'
-                              '(?P<version>[0-9]+).out')
+                              '(?P<version>[0-9]+).out$')
 
 def parse_solution_fname(fname):
     m = re.match(solution_name_rx, fname)
