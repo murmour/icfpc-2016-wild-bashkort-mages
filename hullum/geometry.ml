@@ -18,7 +18,9 @@ type area = num
 
 type line_relation = Exact | Above | Below
 
-type fit_offset = { shift: vector; mult: vector }
+type pythagorean = { sin: Num.num; cos: Num.num }
+
+type fit_offset = { shift: vector; angle: pythagorean }
 
 type triangle = vertex * vertex * vertex
 
@@ -67,13 +69,30 @@ let convex_hull points : polygon =
 let vector_of_ints (x, y) : vector =
   (num_of_int x, num_of_int y)
 
-let for_each_poly_mult action : unit =
-  [ (1, 1); (1, -1); (-1, 1); (-1, -1) ]
-  |> List.map vector_of_ints
-  |> List.iter action
+let for_each_angle action : unit =
+  let step = Num.num_of_string "1/100" in
+  for i = 0 to 200 do
+    for j = 0 to 200 do
+      let sin = num_neg1 + (num_of_int i * step) in
+      let cos = num_neg1 + (num_of_int j * step) in
+      if sin*sin + cos*cos =/ num_1 then
+        action { sin; cos }
+    done
+  done
 
-let apply_poly_mult (p: polygon) ((mult_x, mult_y): vector) =
-  p |> List.map (fun (x, y) -> (x * mult_x, y * mult_y))
+let apply_vertex_angle (angle: pythagorean) ((x, y): vertex) =
+  let x' = angle.cos * x - angle.sin * y in
+  let y' = angle.sin * x + angle.cos * y in
+  (x', y')
+
+let apply_poly_angle (angle: pythagorean) (p: polygon) =
+  p |> List.map (apply_vertex_angle angle)
+
+let apply_vertex_shift ((shift_x, shift_y): vector) ((x, y): vertex) =
+  (x + shift_x, y + shift_y)
+
+let apply_poly_shift (shift: vector) (p: polygon) =
+  p |> List.map (apply_vertex_shift shift)
 
 let vertex_fits (x, y) : bool =
   x >=/ num_0 && x <=/ num_1 && y >=/ num_0 && y <=/ num_1
@@ -86,27 +105,24 @@ let gen_poly_shift p : vector =
   let min_y = p |> List.map snd |> List.reduce min_num in
   (minus_num min_x, minus_num min_y)
 
-let apply_poly_shift (p: polygon) ((shift_x, shift_y): vector) =
-  p |> List.map (fun (x, y) -> (x + shift_x, y + shift_y))
-
 let fit_poly p : (polygon * fit_offset) option =
   Return.label (fun l ->
-    for_each_poly_mult (fun (mult: vector) ->
-      let p = apply_poly_mult p mult in
+    for_each_angle (fun (angle: pythagorean) ->
+      let p = apply_poly_angle angle p in
       let shift = gen_poly_shift p in
-      let p = apply_poly_shift p shift in
+      let p = apply_poly_shift shift p in
       if poly_fits p then
-        Return.return l (Some (p, { mult; shift })));
+        Return.return l (Some (p, { shift; angle })));
     None)
 
 let negate_offset (off: fit_offset) : fit_offset =
   let (shift_x, shift_y) = off.shift in
-  { mult = off.mult; shift = (minus_num shift_x, minus_num shift_y) }
+  let shift = (minus_num shift_x, minus_num shift_y) in
+  let angle = { off.angle with sin = minus_num off.angle.sin } in
+  { shift; angle }
 
-let apply_vertex_offset (off: fit_offset) ((x, y): vertex) : vertex =
-  let (mult_x, mult_y) = off.mult in
-  let (shift_x, shift_y) = off.shift in
-  ((x + shift_x) * mult_x, (y + shift_y) * mult_y)
+let apply_vertex_offset (off: fit_offset) (v: vertex) : vertex =
+  v |> apply_vertex_shift off.shift |> apply_vertex_angle off.angle
 
 let flip_vertex (l: line) ((x, y): vertex) : vertex =
   let d = l.a*x + l.b*y + l.c in

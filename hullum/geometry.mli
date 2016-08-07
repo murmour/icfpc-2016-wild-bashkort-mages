@@ -13,7 +13,7 @@ type area = Num.num
 
 type line_relation = Exact | Above | Below
 
-type fit_offset = { shift: vector; mult: vector }
+type fit_offset
 
 type triangle = vertex * vertex * vertex
 
