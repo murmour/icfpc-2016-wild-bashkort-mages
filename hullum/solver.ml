@@ -5,19 +5,19 @@ open Utils
 open Geometry
 
 
-let dissect_step = num_of_int 10
 let max_solution_size = 5000
 
 
-let gen_dissections (st: State.t) hull target =
+let gen_dissections ~dissections (st: State.t) hull target =
   let vertexes =
     collect (fun push ->
       let hull = List.tl hull in
       List.combine hull (rotate hull) |> List.iter (fun ((v1, v2) as edge) ->
          if not (Geometry.is_poly_edge target edge) then
            let (x1, y1) = v1 and (x2, y2) = v2 in
-           let slope_x = (x2 - x1) / dissect_step in
-           let slope_y = (y2 - y1) / dissect_step in
+           let dissections = num_of_int dissections in
+           let slope_x = (x2 - x1) / dissections in
+           let slope_y = (y2 - y1) / dissections in
            push (`Existing, (x1, y1));
            let x0 = ref (x1 + slope_x) in
            let y0 = ref (y1 + slope_y) in
@@ -75,9 +75,9 @@ let choose_best_dissection forks : State.t option =
        best := Some st));
   !best
 
-let apply_approx_dissection target (st: State.t) : State.t option =
+let apply_approx_dissection ~dissections target (st: State.t) : State.t option =
   let hull = st.points |> Geometry.convex_hull in
-  let sects = gen_dissections st hull target in
+  let sects = gen_dissections ~dissections st hull target in
   let forks1 = sects |> List.filter_map (apply_dissection target hull Above) in
   let forks2 = sects |> List.filter_map (apply_dissection target hull Below) in
   choose_best_dissection (forks1 @ forks2)
@@ -112,12 +112,12 @@ let validate_size ~offset (st: State.t) : bool =
   else
     true
 
-let approximate ~iterations ~target ~offset : State.t =
+let approximate ~iterations ~dissections ~target ~offset : State.t =
   let rec iter n (st: State.t) : State.t =
     Printf.eprintf "Iteration %d (area %s)...\n%!" n (string_of_num st.area);
     if n = iterations then
       st
-    else match apply_approx_dissection target st with
+    else match apply_approx_dissection ~dissections target st with
       | Some next_st ->
           if validate_size next_st ~offset then
             iter (Pervasives.succ n) next_st
@@ -129,7 +129,7 @@ let approximate ~iterations ~target ~offset : State.t =
   in
   iter 0 State.default
 
-let exact ~iterations ~target ~offset : State.t =
+let exact ~iterations ~dissections ~target ~offset : State.t =
   let rec iter n (st: State.t) : State.t =
     Printf.eprintf "Iteration %d (area %s)...\n%!" n (string_of_num st.area);
     if n = iterations then
@@ -142,7 +142,7 @@ let exact ~iterations ~target ~offset : State.t =
             st
       | None ->
           Printf.eprintf "Unable to dissect an edge of the target.\n%!";
-          match apply_approx_dissection target st with
+          match apply_approx_dissection ~dissections target st with
             | Some next_st ->
                 if validate_size next_st ~offset then
                   iter (Pervasives.succ n) next_st

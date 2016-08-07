@@ -9,6 +9,7 @@ let interactive = ref false
 let input_file = ref ""
 let output_file = ref "stdout"
 let iterations = ref 10
+let dissections = ref 10
 
 
 let () =
@@ -18,6 +19,8 @@ let () =
        " Interactive mode");
       ("-iterations", Arg.Int (fun i -> iterations := i),
        " Iteration count");
+      ("-dissections", Arg.Int (fun i -> dissections := i),
+       " Edge dissection count");
       ("-in", Arg.String (fun s -> input_file := s),
        " Problem");
       ("-out", Arg.String (fun s -> output_file := s),
@@ -45,7 +48,12 @@ let () =
   (* if !interactive then *)
   (*   Drawing.draw_poly target; *)
 
-  let st = Solver.approximate ~iterations:!iterations ~target ~offset in
+  let st = Solver.approximate
+      ~iterations:!iterations
+      ~dissections:!dissections
+      ~target
+      ~offset
+  in
   if !interactive then
     Drawing.draw_state target st;
 
