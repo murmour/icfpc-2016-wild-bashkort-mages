@@ -15,12 +15,15 @@ if __name__ == '__main__':
     problems = filter_problems(int(sys.argv[3]), int(sys.argv[4]))
     for p in problems:
         if ensure_that_problem_is_unsolved(p['id']):
-            if len(sys.argv) < 6:
-                sol = solve_problem(executable, p)
+            sol_file = '../data/solutions/solution_%d_%s.out' % (p['id'], tag)
+            if os.path.isfile(sol_file):
+                print('Solution file for problem %d already exists.' % p['id'])
             else:
-                iters = sys.argv[5]
-                sol = solve_problem(executable, p, iters)
-            if sol != None:
-                sol_file = '../data/solutions/solution_%d_%s.out' % (p['id'], tag)
-                with io.open(sol_file, 'w') as h:
-                    h.write(sol)
+                if len(sys.argv) < 6:
+                    sol = solve_problem(executable, p)
+                else:
+                    iters = sys.argv[5]
+                    sol = solve_problem(executable, p, iters)
+                if sol != None:
+                    with io.open(sol_file, 'w') as h:
+                        h.write(sol)
