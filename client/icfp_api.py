@@ -178,6 +178,7 @@ def send_all_solutions(tag):
 
 def solve_problem(executable, p, iters = None):
     print('Solving problem %s with %s...' % (p['id'], executable))
+    sys.stdout.flush()
     try:
         if iters is None:
             sol = subprocess.check_output([executable, "-in", p['fname']])
@@ -190,4 +191,5 @@ def solve_problem(executable, p, iters = None):
     except subprocess.CalledProcessError as ex: # error code <> 0
         print("-------- Error --------")
         print(ex)
+        sys.stdout.flush()
         return None
