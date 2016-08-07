@@ -9,6 +9,8 @@ import itertools
 from fractions import Fraction
 from math import sqrt
 from time import clock
+from geom import getDistance2, getfirst
+from nagibator import nagibate
 
 
 kSz = 1
@@ -46,8 +48,9 @@ class Poly:
     def __init__(self, pts):
         self.pts = pts
         sum = 0
-        for a, b in zip(pts, pts[1:] + [pts[0]]):
-            sum += a[0] * b[1] - a[1] * b[0]
+        if pts:
+            for a, b in zip(pts, pts[1:] + [pts[0]]):
+                sum += a[0] * b[1] - a[1] * b[0]
         #print(sum)
         self.hole = sum < 0
         
@@ -124,7 +127,10 @@ class Interior:
         self.others = others
 
 def loadP(idx, bord_version):
-    fname = '../data/problems/%d.p%s' % (idx, bord_version)
+    if idx < 0:
+        fname = '../data/nagibated/%d.p%s' % (-idx, bord_version)
+    else:
+        fname = '../data/problems/%d.p%s' % (idx, bord_version)
     with io.open(fname) as f:
             
         def getline():
@@ -169,7 +175,10 @@ def loadP(idx, bord_version):
         return Paths(patches, quads)
 
 def loadEdges(idx):
-    fname = '../data/problems/%d.ind' % idx
+    if idx < 0:
+        fname = '../data/nagibated/%d.ind' % (-idx)
+    else:
+        fname = '../data/problems/%d.ind' % idx
     with io.open(fname) as f:
             
         def getint():
@@ -197,7 +206,10 @@ def parseNum(s):
     return Fraction(t[0], t[1])
     
 def loadVerts(idx):
-    fname = '../data/problems/%d.in' % idx
+    if idx < 0:
+        fname = '../data/nagibated/%d.in' % (-idx)
+    else:
+        fname = '../data/problems/%d.in' % idx
     with io.open(fname) as f:
             
         def getint():
@@ -207,11 +219,14 @@ def loadVerts(idx):
             s = s.split(',')                
             return (parseNum(s[0]), parseNum(s[1]))
         
+        allpts = set()
+        
         def readpoly():
             n = getint()
-            return [getpt(f.readline()) for _ in range(n)]
-        
-        allpts = set()
+            t = [getpt(f.readline()) for _ in range(n)]
+            #allpts.update(t)
+            return t
+                
         
         def readedge():
             t = list(map(getpt, f.readline().split()))
@@ -268,17 +283,8 @@ class QuadResult:
         self.np = np
         self.xlen = xlen
 
-def getDistance2(v1, v2):
-    a = v1[0] - v2[0]
-    b = v1[1] - v2[1]
-    return a * a + b * b
-
 def getDistance(v1, v2):
     return fr_sqrt(getDistance2(v1, v2))
-        
-def getfirst(s):
-    for x in s:
-        return x
     
 def getsecond(s):
     t = 0
@@ -303,7 +309,7 @@ def testQuad(paths, verts, interiors):
     def addFrameEdge(i1, i2, p1, p2):
         fr_edges.append(FrameEdge((i1, i2), (p1, p2)))
     
-    allowed = {Fraction(1, n) for n in range(1, 100)}
+    allowed = {Fraction(1, n) for n in range(1, 120)}
         
     cur = (Fraction(0), Fraction(0))
     p = paths[0]
@@ -313,7 +319,7 @@ def testQuad(paths, verts, interiors):
         cur = (cur[0] + getlen(i1, i2), cur[1])
         new_pts[i2].add(cur)
         addFrameEdge(i1, i2, old, cur)
-    #print(cur)
+    print(cur)
     assert(cur[0] in allowed)
     xlen = cur[0]
     #assert(cur == (Fraction(1), Fraction(0)))    
@@ -402,7 +408,7 @@ def testQuad(paths, verts, interiors):
     #print(new_pts)
     for i, t in enumerate(new_pts):
         if not t:
-            print('Vertex %d is missing' % i)
+            #print('Vertex %d is missing' % i)
             return None
     return QuadResult(fr_edges, new_pts, xlen)
     
@@ -518,8 +524,20 @@ def checkUnique(pts):
             print(a)
             assert(a != b)
             
+def checkCongrunce(pts, pts0, facets):
+    for f in facets:
+        for a, b in zip(f, f[1:] + f[:1]):
+            if getDistance2(pts[a], pts[b]) != getDistance2(pts0[a], pts0[b]):
+                return False
+        for a, b, c in zip(f, f[1:] + f[:1], f[2:] + f[:2]):
+            if dotp(vec(pts[b], pts[a]), vec(pts[b], pts[c])) != dotp(vec(pts0[b], pts0[a]), vec(pts0[b], pts0[c])):
+                return False
+    return True            
+
         
 def extractFacetsX(pts0, pts, edges, xlen):
+    
+    
     
     if manual:
         return manual
@@ -585,8 +603,8 @@ def extractFacetsX(pts0, pts, edges, xlen):
         start_t = clock()     
         for zzz in mm:
             ctr += 1
-            if clock() - start_t > 10:
-                print('Tried %.2f per second' % (ctr / 20))
+            if clock() - start_t > 5:
+                print('Tried %.2f per second' % (ctr / 5))
                 #raise ESolverFailure(kFailCombinationExceeded)
                 break
             if ctr % 1000 == 0:
@@ -599,10 +617,13 @@ def extractFacetsX(pts0, pts, edges, xlen):
             #print('eee=%s' % eee)
             eee.extend(edges0)
             #saveFacets(pts0, eee, 'facets.json')        
-            ret = extractFacets(pts0, eee, xlen)
+            ret = extractFacets(pts0, eee, xlen)            
             if ret:
-                saveFacets(pts0, eee, 'facets.json')
-                return ret
+                if checkCongrunce(pts, pts0, ret):                
+                    saveFacets(pts0, eee, 'facets.json')
+                    return ret
+                else:
+                    print('no congruence!')
         
     #mane = [ [(2,4), (4, 8), (8, 5), (1, 7)] ]
     mane = []
@@ -711,7 +732,10 @@ def optimizeSol(np, verts, facets):
 
 def getSolName(idx):
     #return '../data/solutions/solution_%d_interior_%d.out' % (idx, kVersion)
-    return '../data/solutions/solution_%d_oxyethylene_%d.out' % (idx, kVersion)
+    if idx < 0:
+        return '../data/nagibated/%d_oxy_%d.out' % (-idx, kVersion)
+    else:
+        return '../data/solutions/solution_%d_nagibator_%d.out' % (idx, kVersion)
 
 def saveSol(idx, np, verts, facets):
     fname = getSolName(idx)    
@@ -809,7 +833,49 @@ def duplicateX(sqv, tgtv, edges, cnt):
     return sqv2, tgtv2, list(edges2)
     
     
+#def testQuadX(verts):
+    
 
+def savenagib(idx, iter, verts, edges):
+    #n = len(verts)
+    m = len(edges)
+    num = idx * 100 + iter if iter > 0 else idx
+    fname = '../data/nagibated/%d.in' % num
+    with io.open(fname, 'wt') as f:
+        f.write('1\n')
+        f.write('0\n')
+        f.write('%d\n' % m)
+        for a, b in edges:
+            f.write('%s,%s %s,%s\n' % (verts[a][0], verts[a][1], verts[b][0], verts[b][1]))
+    
+
+def resolveNagib(idx):
+    print('TODO: resolve nagib!')
+
+def make_nagib(idx):
+    verts = loadVerts(idx)
+    edges = loadEdges(idx)
+    lines = []
+    while True:
+        t = nagibate(verts, edges)
+        if not t:
+            break
+        verts, edges, l = t
+        lines.append(l)
+        savenagib(idx, len(lines), verts, edges)
+        
+    lines.reverse()
+    with io.open('../data/nagibated/%d.lines' % idx, 'wt') as f:
+        f.write('%d\n' % len(lines))
+        for l in lines:
+            f.write('%s %s %s\n' % (l.a, l.b, l.c))
+    
+    savenagib(idx, 0, verts, edges)
+    print(lines)
+    return True
+         
+        
+    
 
 def test(idx, bord_version=''):
     verts = loadVerts(idx)
@@ -818,8 +884,10 @@ def test(idx, bord_version=''):
     if not pat.quads:
         print('No way!')
         raise ESolverFailure(kFailNoQuads)
-    for q in pat.quads[:2000]:
-        print('Trying %s' % q.idxs)
+    qlen = len(pat.quads[:500])
+    print('Trying %d quads...' % qlen)
+    for q in pat.quads[:500]:
+        #print('Trying %s' % q.idxs)
         #print('verts=%s' % printverts(verts))
         try:
             np = testQuad([pat.paths[i] for i in q.idxs], verts, q.interiors)
@@ -944,7 +1012,10 @@ if __name__ == '__main__':
     #manual.extend([[12,13,6,5], [5,6,7,9], [9,7,0,1], [13,3,2,6], [6,2,4,8,11,7], [7,11,10,0]]) # 23 todo: fix
     #manual.extend([[5,4, 8,6], [4,7,8], [7,2,1,3,8], [6,8,3,0]]) # 45 todo: fix 
     #manual.extend([[7,9,5], [9,12,11,6,3,5], [3,6,4], [4,6,2], [2,6,11,10,1], [1,10,8,0]]) # 56 todo: fix
-    test(92, '1')
+    #manual.extend([[17, 14, 15, 16], [16,15,11,13], [13,11,10,9], [9,10,8,1], [1,8,6,3], [3,6,12,2], [2,12,5,4], [4,5,7,0]])
+    make_nagib(1945)
+    
+    #test(25, '1')
     exit()
     #p = getPartitions([0, 1, 2, 3, 4, 6, 8, 9])
     #print([(0, 8), (1, 6), (2, 9), (3, 4)] in p)

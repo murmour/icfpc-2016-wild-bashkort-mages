@@ -94,11 +94,13 @@ class TileWidget(QtGui.QWidget):
                 s = s.split(',')                
                 return (st.parseNum(s[0]), st.parseNum(s[1]))
             
+            allpts = set()
+            
             def readpoly():
                 n = getint()
-                return Poly([getpt(f.readline()) for _ in range(n)])
-            
-            allpts = set()
+                t = [getpt(f.readline()) for _ in range(n)]
+                #allpts.update(t)
+                return Poly(t)
             
             def readedge():
                 t = list(map(getpt, f.readline().split()))
@@ -239,25 +241,9 @@ class MoveViewer(QtGui.QMainWindow):
             self.restoreState(t, 0)
 
         self.data_edit = QtGui.QComboBox()
+                
         
-        fnames = [f for f in os.listdir('../data/problems') if f.endswith('.in')]        
-        self.idxs = [int(f.split('.')[0]) for f in fnames]
-        
-        
-        #self.idxs = [i for i in self.idxs if not checkOk(i)]
-        self.idxs.sort()
-        self.solved_data = getAllSolved()
-        
-        with io.open('stats.log', 'w') as f:
-            t = { idx : '' for idx in self.idxs }
-            t.update(self.solved_data)
-            for num, solver in sorted(t.items()):
-                f.write('%d %s\n' % (num, solver))
-        
-        print('%d problems' % len(self.idxs))
-        
-        
-        self.data_edit.addItems(['Task %d' % i for i in self.idxs])
+        self.doRefresh(False)
         self.data_edit.currentIndexChanged.connect(self.loadFile)
         
         self.info_box = InfoPanel(self)
@@ -278,10 +264,45 @@ class MoveViewer(QtGui.QMainWindow):
         self.show()
         self.data_edit.setFocus()
         
+        self.actr = cmn.Action(self, 'Refrest', None, lambda: self.doRefresh(False), 'F5')
+        self.actr2 = cmn.Action(self, 'Refres2', None, lambda: self.doRefresh(True), 'F6')
+        self.addAction(self.actr)
+        self.addAction(self.actr2)
+        
+    
+    def doRefresh(self, nagib):
+        self.nagib = nagib
+        pp = '../data/nagibated' if nagib else '../data/problems'
+        fnames = [f for f in os.listdir(pp) if f.endswith('.in')]        
+        self.idxs = [int(f.split('.')[0]) for f in fnames]
+                
+        #self.idxs = [i for i in self.idxs if not checkOk(i)]
+        self.idxs.sort()
+        
+        if not nagib:
+            self.solved_data = getAllSolved()
+            
+            with io.open('stats.log', 'w') as f:
+                t = { idx : '' for idx in self.idxs }
+                t.update(self.solved_data)
+                for num, solver in sorted(t.items()):
+                    f.write('%d %s\n' % (num, solver))
+        else:
+            self.solved_data = {}
+        
+        print('%d problems' % len(self.idxs))
+        
+        self.data_edit.clear()
+        self.data_edit.addItems(['Task %d' % i for i in self.idxs])        
+        
+        
     def loadFile(self, idx):
         if idx >= 0:
             pidx = self.idxs[idx]
-            fname = '../data/problems/%d.in' % pidx
+            if self.nagib:
+                fname = '../data/nagibated/%d.in' % pidx
+            else:
+                fname = '../data/problems/%d.in' % pidx
             solver_name = self.solved_data[pidx] if pidx in  self.solved_data else ''
             self.mview.load(fname, solver_name)
             self.mview.update()
@@ -294,6 +315,8 @@ class MoveViewer(QtGui.QMainWindow):
         s.setValue("origami/geometry", self.saveGeometry())
         s.setValue('origami/dockstate', self.saveState(0))           
             
+
+kLoadFromNagib = True
 
 def main():    
     app = QtGui.QApplication(sys.argv)
