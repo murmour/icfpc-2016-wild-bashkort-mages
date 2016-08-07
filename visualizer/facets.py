@@ -527,6 +527,12 @@ def extractFacetsX(pts0, pts, edges, xlen):
     #return [[1, 4, 7, 6, 0], [7, 5, 6], [5, 9, 10, 6], [6, 10, 8, 3, 2, 0]]
     n = len(pts)
     seen = set()
+    
+    neibs = [set() for _ in range(n)]
+    for a, b in edges:
+        neibs[a].add(b)
+        neibs[b].add(a)
+    
     sets = []
     #checkUnique(pts)
     print('pts=%s' % printverts(pts))
@@ -535,13 +541,21 @@ def extractFacetsX(pts0, pts, edges, xlen):
             continue
         v1 = vec(pts[a], pts[b])
         assert(v1[0] != 0 or v1[1] != 0)
-        t = set()
+        #t = set()
+        t = {a, b}
+        
+        def hasNeibInT(v):
+            for u in neibs[v]:
+                if u in t:
+                    return True
+            return False
+        
         for i in range(n):
-            if i != a and i != b and crossp(vec(pts[a], pts[i]), v1) == 0:
+            if i != a and i != b and crossp(vec(pts[a], pts[i]), v1) == 0 and hasNeibInT(i):
                 t.add(i)
-        if t:
-            t.add(a)
-            t.add(b)
+        if len(t) > 2:
+            #t.add(a)
+            #t.add(b)
             sets.append(sorted(t))
             seen.update(t)
     
@@ -930,7 +944,7 @@ if __name__ == '__main__':
     #manual.extend([[12,13,6,5], [5,6,7,9], [9,7,0,1], [13,3,2,6], [6,2,4,8,11,7], [7,11,10,0]]) # 23 todo: fix
     #manual.extend([[5,4, 8,6], [4,7,8], [7,2,1,3,8], [6,8,3,0]]) # 45 todo: fix 
     #manual.extend([[7,9,5], [9,12,11,6,3,5], [3,6,4], [4,6,2], [2,6,11,10,1], [1,10,8,0]]) # 56 todo: fix
-    test(53, '1')
+    test(92, '1')
     exit()
     #p = getPartitions([0, 1, 2, 3, 4, 6, 8, 9])
     #print([(0, 8), (1, 6), (2, 9), (3, 4)] in p)
