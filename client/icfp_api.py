@@ -216,11 +216,21 @@ def ensure_that_problem_is_unsolved(id):
     return True
 
 
+def ensure_that_solution_is_unsent(sol):
+    r = get_response(sol)
+    if (r is not None) and r['ok']:
+        print('Solution for problem %d by %s is already sent (score: %f)'
+              % (sol['set_id'], sol['tag'], r['resemblance']))
+        return False
+    return True
+
+
 def send_all_solutions(tag):
     filtered = filter_solutions(tag)
     for sol in filtered:
         if ensure_that_problem_is_unsolved(sol['set_id']):
-            send_solution_and_save_response(sol)
+            if ensure_that_solution_is_unsent(sol):
+                send_solution_and_save_response(sol)
 
 
 def solve_problem(executable, p, iters = None):
