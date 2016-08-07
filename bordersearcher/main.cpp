@@ -84,7 +84,7 @@ double get_angle( int i, int j, int k )
 
 void p_search( double L )
 {
-	for (int z=1; z<=50; z++)
+	for (int z=1; z<=100; z++)
 		if ( fabs(L-1./z) < eps )
 		{
 			if (canbe[cur_p[c_sz-1]])
@@ -214,7 +214,7 @@ void sol()
 	}
 
 	map< vector< VI >, VI > Map;
-	DFOR(z,(Strip==-1?50:Strip),(Strip==-1?1:Strip))
+	DFOR(z,(Strip==-1?100:Strip),(Strip==-1?1:Strip))
 	{
 		FA(a,paths) if (factor[a]==z) FA(b,paths) if (factor[b]==1)
 			if (p_next( paths[a], paths[b] ))
@@ -346,7 +346,7 @@ int main(int argc, char** argv)
 {
 	System::ParseArgs(argc, argv);
 
-	int a = 1067;
+	int a = 524;
 	start_t = clock();
 	//FOR(a,98,101) if (a!=24 && a!=30 && a!=32 && a!=33 && a!=83 && a!=84 && a!=85 && a!=86 && a!=88 &&
 	//	a!=89 && a!=90 && a!=92 && a!=101)
@@ -390,7 +390,8 @@ int main(int argc, char** argv)
 		}
 		else
 		{
-			//sprintf( ch, "../data/problems/%d.p", a );
+			//char ch[100];
+			//sprintf( ch, "../data/problems/%d.p1", a );
 			//freopen( ch, "w", stdout );
 			freopen( "output.txt", "w", stdout );
 		}
