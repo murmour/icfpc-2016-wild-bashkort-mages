@@ -3,7 +3,7 @@ Created on Aug 5, 2016
 
 @author: linesprower
 '''
-from solver import checkOk
+from solver import checkOk, getAllSolved
 
 '''
 Created on Jul 10, 2016
@@ -84,7 +84,7 @@ class TileWidget(QtGui.QWidget):
         QtGui.QWidget.__init__(self)
         
         
-    def load(self, fname):
+    def load(self, fname, solver):
         with io.open(fname) as f:
             
             def getint():
@@ -120,6 +120,9 @@ class TileWidget(QtGui.QWidget):
             #if self.minx == self.maxx:
             #    self.maxx += 1    
             self.has_data = True
+            self.color = 'green' if solver else 'pink'
+            self.owner.statusBar().showMessage(solver)
+            
             #print(self.polys[0].pts)
         
         if not os.path.exists(fname + 'd'):
@@ -202,7 +205,7 @@ class TileWidget(QtGui.QWidget):
         
         for q in self.polys:
             poly = QtGui.QPolygonF([self.transform(t) for t in q.pts])
-            p.setBrush(QtGui.QColor('white' if q.hole else "pink"))            
+            p.setBrush(QtGui.QColor('white' if q.hole else self.color))            
             p.drawPolygon(poly)
             
         # edgges
@@ -240,22 +243,17 @@ class MoveViewer(QtGui.QMainWindow):
         fnames = [f for f in os.listdir('../data/problems') if f.endswith('.in')]        
         self.idxs = [int(f.split('.')[0]) for f in fnames]
         
-        '''
-        cachename = 'solved.cache'
-        solved = set()
-        if os.path.exists(cachename):
-            with io.open(cachename) as cf:
-                t = json.loads(cf.read())
-                solved = set(t)
         
-        def check(i):
-            if i in solved:
-                return False
-            if checkOk(idx)
-        '''
-        
-        self.idxs = [i for i in self.idxs if not checkOk(i)]
+        #self.idxs = [i for i in self.idxs if not checkOk(i)]
         self.idxs.sort()
+        self.solved_data = getAllSolved()
+        
+        with io.open('stats.log', 'w') as f:
+            t = { idx : '' for idx in self.idxs }
+            t.update(self.solved_data)
+            for num, solver in sorted(t.items()):
+                f.write('%d %s\n' % (num, solver))
+        
         print('%d problems' % len(self.idxs))
         
         
@@ -282,8 +280,10 @@ class MoveViewer(QtGui.QMainWindow):
         
     def loadFile(self, idx):
         if idx >= 0:
-            fname = '../data/problems/%d.in' % (self.idxs[idx])
-            self.mview.load(fname)
+            pidx = self.idxs[idx]
+            fname = '../data/problems/%d.in' % pidx
+            solver_name = self.solved_data[pidx] if pidx in  self.solved_data else ''
+            self.mview.load(fname, solver_name)
             self.mview.update()
             with io.open(fname) as f:
                 self.info_box.setData(f.read())              

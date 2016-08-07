@@ -696,7 +696,8 @@ def optimizeSol(np, verts, facets):
     
 
 def getSolName(idx):
-    return '../data/solutions/solution_%d_interior_%d.out' % (idx, kVersion)
+    #return '../data/solutions/solution_%d_interior_%d.out' % (idx, kVersion)
+    return '../data/solutions/solution_%d_oxyethylene_%d.out' % (idx, kVersion)
 
 def saveSol(idx, np, verts, facets):
     fname = getSolName(idx)    
@@ -910,7 +911,7 @@ def test_distpoints():
     q = getDistPoints((2, 1), 2 * 2, (7, 5), 5 * 5)
     print(q)
 
-kVersion = 17
+kVersion = 1
 #kSkip = 1
 
 def test_facets():

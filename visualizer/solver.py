@@ -11,16 +11,21 @@ import icfp_api
 soldirname = '../data/solutions'
 probdirname = '../data/problems'
 
+def checkResponse(respfile):
+    with io.open(soldirname + '/' + respfile) as f:
+        j = json.loads(f.read())
+        if ('resemblance' in j) and j['resemblance'] == 1:
+            return True
+        return False
+            
+
 def checkOk(idx):
     try:        
         test = re.compile(r'solution_%d_.*response' % idx)
         fnames = [f for f in os.listdir(soldirname) if re.match(test, f)]
         for fname in fnames:
-            with io.open(soldirname + '/' + fname) as f:
-                j = json.loads(f.read())
-                if ('resemblance' in j) and j['resemblance'] == 1:
-                    return True
-                #print(j)
+            if checkResponse(fname):
+                return True            
         return False
     except:
         return False
@@ -29,9 +34,14 @@ def checkOk(idx):
 def getAllSolved():
     test = re.compile(r'solution_(\d+)_(.*)\.out\.response')
     fnames = [f for f in os.listdir(soldirname) if re.match(test, f)]
-    
-    
-    print(fnames)
+    res = {}
+    for fn in fnames:
+        m = re.match(test, fn)
+        num = int(m.group(1))
+        solver = m.group(2)
+        if checkResponse(fn):
+            res[num] = solver    
+    return res
 
 #kVersion = '_defiler_1'
 kBorderVersion = 1
