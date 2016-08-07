@@ -45,7 +45,7 @@ let () =
   (* if !interactive then *)
   (*   Drawing.draw_poly target; *)
 
-  let st = Solver.approximate ~iterations:!iterations ~target in
+  let st = Solver.approximate ~iterations:!iterations ~target ~offset in
   if !interactive then
     Drawing.draw_state target st;
 
@@ -53,4 +53,8 @@ let () =
   if !interactive then
     Drawing.draw_poly_list sol.facets;
 
-  Solution.write_file ~fname:!output_file sol
+  if !output_file = "stdout" then
+    output_string stdout (Solution.print sol)
+  else
+    File.with_file_out ~mode:[`create] !output_file (fun ch ->
+      IO.nwrite ch (Solution.print sol))

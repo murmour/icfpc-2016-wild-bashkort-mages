@@ -98,25 +98,35 @@ let recover (st: State.t) (off: Geometry.fit_offset) : t =
   { vertexes; facets = !facets }
 
 
-let write_file ~fname (sol: t) =
-  let cout = if fname = "stdout" then stdout else open_out fname in
+let print (sol: t) =
+  let b = Buffer.create 1000 in
   let (source, dest) = List.split sol.vertexes in
 
   let print_vertex (x, y) =
-    fprintf cout "%s,%s\n" (Num.string_of_num x) (Num.string_of_num y)
-  in
+    bprintf b "%s,%s\n" (Num.string_of_num x) (Num.string_of_num y) in
 
-  fprintf cout "%d\n" (List.length source);
+  bprintf b "%d\n" (List.length source);
   source |> List.iter print_vertex;
 
-  fprintf cout "%d\n" (List.length sol.facets);
+  bprintf b "%d\n" (List.length sol.facets);
   sol.facets |> List.iter (fun f ->
     let f = List.tl f in
-    fprintf cout "%d " (List.length f);
+    bprintf b "%d " (List.length f);
     f |> List.iter (fun v ->
       let (i, _) = source |> List.findi (fun i v' ->
         Geometry.equal_vertexes v v') in
-      fprintf cout "%d " i);
-    fprintf cout "\n");
+      bprintf b "%d " i);
+    bprintf b "\n");
 
-  dest |> List.iter print_vertex
+  dest |> List.iter print_vertex;
+
+  Buffer.contents b
+
+
+let size (sol: t) : int =
+  let s = print sol in
+  let ct = ref 0 in
+  s |> String.iter (fun c ->
+    if not (Char.is_whitespace c) then
+      incr ct);
+  !ct

@@ -6,6 +6,7 @@ open Geometry
 
 
 let dissect_step = num_of_int 10
+let max_solution_size = 5000
 
 
 let gen_dissections (st: State.t) hull target =
@@ -103,33 +104,50 @@ let apply_exact_dissection target (st: State.t) : State.t option =
   let forks2 = sects |> List.filter_map (apply_dissection target hull Below) in
   choose_best_dissection (forks1 @ forks2)
 
-let approximate ~iterations ~target : State.t =
+let validate_size ~offset (st: State.t) : bool =
+  let sol = Solution.recover st offset in
+  if Solution.size sol > max_solution_size then
+    (Printf.eprintf "Reached maximum solution size!\n%!";
+     false)
+  else
+    true
+
+let approximate ~iterations ~target ~offset : State.t =
   let rec iter n (st: State.t) : State.t =
-    Printf.eprintf "Iteration %d (area %s)...%!\n" n (string_of_num st.area);
+    Printf.eprintf "Iteration %d (area %s)...\n%!" n (string_of_num st.area);
     if n = iterations then
       st
     else match apply_approx_dissection target st with
-      | Some st ->
-          iter (Pervasives.succ n) st
+      | Some next_st ->
+          if validate_size next_st ~offset then
+            iter (Pervasives.succ n) next_st
+          else
+            st
       | None ->
           Printf.eprintf "Found a perfect solution!\n";
           st
   in
   iter 0 State.default
 
-let exact ~iterations ~target : State.t =
+let exact ~iterations ~target ~offset : State.t =
   let rec iter n (st: State.t) : State.t =
-    Printf.eprintf "Iteration %d (area %s)...%!\n" n (string_of_num st.area);
+    Printf.eprintf "Iteration %d (area %s)...\n%!" n (string_of_num st.area);
     if n = iterations then
       st
     else match apply_exact_dissection target st with
-      | Some st ->
-          iter (Pervasives.succ n) st
+      | Some next_st ->
+          if validate_size next_st ~offset then
+            iter (Pervasives.succ n) next_st
+          else
+            st
       | None ->
-          Printf.eprintf "Unable to dissect an edge of the target.%!\n";
+          Printf.eprintf "Unable to dissect an edge of the target.\n%!";
           match apply_approx_dissection target st with
-            | Some st ->
-                iter (Pervasives.succ n) st
+            | Some next_st ->
+                if validate_size next_st ~offset then
+                  iter (Pervasives.succ n) next_st
+                else
+                  st
             | None ->
                 Printf.eprintf "Found a perfect solution!\n";
                 st
