@@ -18,7 +18,7 @@ type area = num
 
 type line_relation = Exact | Above | Below
 
-type pythagorean = { sin: Num.num; cos: Num.num }
+type pythagorean = { sin: num; cos: num }
 
 type fit_offset = { shift: vector; angle: pythagorean }
 
@@ -69,16 +69,52 @@ let convex_hull points : polygon =
 let vector_of_ints (x, y) : vector =
   (num_of_int x, num_of_int y)
 
+(* Online computation (too slow) *)
+(* let for_each_angle action : unit = *)
+(*   let step = num_of_string "1/1000" in *)
+(*   for i = 0 to 2000 do *)
+(*     for j = 0 to 2000 do *)
+(*       let sin = num_neg1 + (num_of_int i * step) in *)
+(*       let cos = num_neg1 + (num_of_int j * step) in *)
+(*       if sin*sin + cos*cos =/ num_1 then *)
+(*         action { sin; cos } *)
+(*     done *)
+(*   done *)
+
+(* Precomputed version *)
 let for_each_angle action : unit =
-  let step = Num.num_of_string "1/100" in
-  for i = 0 to 200 do
-    for j = 0 to 200 do
-      let sin = num_neg1 + (num_of_int i * step) in
-      let cos = num_neg1 + (num_of_int j * step) in
-      if sin*sin + cos*cos =/ num_1 then
-        action { sin; cos }
-    done
-  done
+  List.iter (fun (sin, cos) ->
+    action { sin = num_of_string sin; cos = num_of_string cos })
+    [
+      ("-1", "0");
+      ("-24/25", "-7/25");
+      ("-24/25", "7/25");
+      ("-117/125", "-44/125");
+      ("-117/125", "44/125");
+      ("-4/5", "-3/5");
+      ("-4/5", "3/5");
+      ("-3/5", "-4/5");
+      ("-3/5", "4/5");
+      ("-44/125", "-117/125");
+      ("-44/125", "117/125");
+      ("-7/25", "-24/25");
+      ("-7/25", "24/25");
+      ("0", "-1");
+      ("0", "1");
+      ("7/25", "-24/25");
+      ("7/25", "24/25");
+      ("44/125", "-117/125");
+      ("44/125", "117/125");
+      ("3/5", "-4/5");
+      ("3/5", "4/5");
+      ("4/5", "-3/5");
+      ("4/5", "3/5");
+      ("117/125", "-44/125");
+      ("117/125", "44/125");
+      ("24/25", "-7/25");
+      ("24/25", "7/25");
+      ("1", "0");
+    ]
 
 let apply_vertex_angle (angle: pythagorean) ((x, y): vertex) =
   let x' = angle.cos * x - angle.sin * y in
