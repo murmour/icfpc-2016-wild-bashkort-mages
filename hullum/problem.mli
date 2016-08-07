@@ -5,3 +5,5 @@ and skeleton = Geometry.segment list
 
 
 val read_file: fname: string -> t
+
+val silhouette_area: silhouette -> Geometry.area

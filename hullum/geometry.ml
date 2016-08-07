@@ -133,11 +133,14 @@ let cross ((ax, ay): vector) ((bx, by): vector) : num =
 let vec ((ax, ay): vertex) ((bx, by): vertex) =
   (bx - ax, by - ay)
 
-let hull_area (p: polygon) : area =
+let poly_area (p: polygon) : area =
   let sum = ref num_0 in
   List.combine p (rotate p) |> List.iter (fun (v1, v2) ->
     sum := !sum + cross v1 v2);
-  num_1_by_2 * abs_num !sum
+  num_1_by_2 * !sum
+
+let hull_area (h: polygon) : area =
+  abs_num (poly_area h)
 
 let hulls_are_equal (p1: polygon) (p2: polygon) : bool =
   let rec iter = function

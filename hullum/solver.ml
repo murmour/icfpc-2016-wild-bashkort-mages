@@ -112,7 +112,11 @@ let validate_size ~offset (st: State.t) : bool =
   else
     true
 
-let approximate ~iterations ~dissections ~target ~offset : State.t =
+let approx ~iterations ~dissections ~target ~offset : State.t =
+  Printf.eprintf "Solving using \"approx\" strategy \
+                  (iterations: %d, dissections: %d)...\n%!"
+    iterations dissections;
+
   let rec iter n (st: State.t) : State.t =
     Printf.eprintf "Iteration %d (area %s)...\n%!" n (string_of_num st.area);
     if n = iterations then
@@ -124,12 +128,16 @@ let approximate ~iterations ~dissections ~target ~offset : State.t =
           else
             st
       | None ->
-          Printf.eprintf "Found a perfect solution!\n";
+          Printf.eprintf "Couldn't make another step!\n";
           st
   in
   iter 0 State.default
 
 let exact ~iterations ~dissections ~target ~offset : State.t =
+  Printf.eprintf "Solving using \"exact\" strategy \
+                  (iterations: %d, dissections: %d)...\n%!"
+    iterations dissections;
+
   let rec iter n (st: State.t) : State.t =
     Printf.eprintf "Iteration %d (area %s)...\n%!" n (string_of_num st.area);
     if n = iterations then
@@ -141,7 +149,7 @@ let exact ~iterations ~dissections ~target ~offset : State.t =
           else
             st
       | None ->
-          Printf.eprintf "Unable to dissect an edge of the target.\n%!";
+          Printf.eprintf "Unable to dissect by edge of the target.\n%!";
           match apply_approx_dissection ~dissections target st with
             | Some next_st ->
                 if validate_size next_st ~offset then
@@ -149,7 +157,7 @@ let exact ~iterations ~dissections ~target ~offset : State.t =
                 else
                   st
             | None ->
-                Printf.eprintf "Found a perfect solution!\n";
+                Printf.eprintf "Couldn't make another step!\n";
                 st
   in
   iter 0 State.default

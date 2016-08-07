@@ -32,3 +32,6 @@ let read_file ~fname : t =
   in
 
   (silhouette, skeleton)
+
+let silhouette_area sil =
+  sil |> List.map Geometry.poly_area |> List.reduce Num.add

@@ -1,5 +1,5 @@
 
-val approximate:
+val approx:
   iterations: int ->
   dissections: int ->
   target: Geometry.polygon ->
