@@ -3,6 +3,7 @@ Created on Aug 5, 2016
 
 @author: linesprower
 '''
+from solver import checkOk
 
 '''
 Created on Jul 10, 2016
@@ -238,6 +239,22 @@ class MoveViewer(QtGui.QMainWindow):
         
         fnames = [f for f in os.listdir('../data/problems') if f.endswith('.in')]        
         self.idxs = [int(f.split('.')[0]) for f in fnames]
+        
+        '''
+        cachename = 'solved.cache'
+        solved = set()
+        if os.path.exists(cachename):
+            with io.open(cachename) as cf:
+                t = json.loads(cf.read())
+                solved = set(t)
+        
+        def check(i):
+            if i in solved:
+                return False
+            if checkOk(idx)
+        '''
+        
+        self.idxs = [i for i in self.idxs if not checkOk(i)]
         self.idxs.sort()
         print('%d problems' % len(self.idxs))
         
@@ -250,7 +267,8 @@ class MoveViewer(QtGui.QMainWindow):
         
                 
         self.mview = TileWidget(self)
-        self.loadFile(self.idxs.index(27))
+        #self.loadFile(self.idxs.index(27))
+        self.loadFile(0)
                 
         layout = cmn.VBox([
                            self.data_edit,
@@ -263,7 +281,7 @@ class MoveViewer(QtGui.QMainWindow):
         self.data_edit.setFocus()
         
     def loadFile(self, idx):
-        if idx >= 0:            
+        if idx >= 0:
             fname = '../data/problems/%d.in' % (self.idxs[idx])
             self.mview.load(fname)
             self.mview.update()
