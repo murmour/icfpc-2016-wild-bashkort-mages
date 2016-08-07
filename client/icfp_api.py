@@ -97,10 +97,10 @@ def write_latest_problem_specs() -> json:
     pr = get_latest_problems()
     hash = { p['problem_id'] : p['problem_spec_hash'] for p in pr }
     idxs = [p['problem_id'] for p in pr]
-    
+
     def fname(idx):
         return '../data/problems/%s.in' % idx
-    
+
     idxs = [p for p in idxs if not os.path.isfile(fname(p))]
     idxs.sort()
     n = len(idxs)
@@ -170,10 +170,52 @@ def send_solution_logged(id, fname):
         f.write(json.dumps(response))
     return response
 
+def get_response(sol):
+    fname = sol['fname'] + '.response'
+    if os.path.isfile(fname):
+        with io.open(fname, 'r') as h:
+            return json.loads(h.read())
+    else:
+        return None
+
+
+def get_best_solution(id):
+    l = filter_solutions(None)
+    max_score = 0
+    best = None
+    for s in l:
+        if s['set_id'] == id:
+            r = get_response(s)
+            s['response'] = r
+            if (r is not None) and r['ok']:
+                score = s['response']['resemblance']
+                if score > max_score:
+                    max_score = score
+                    best = s
+    return best
+
+
+def send_solution_and_save_response(sol):
+    response = send_solution(f['set_id'], f['fname'])
+    if response is None:
+        print('There was no response!')
+        return
+    print(response)
+
+    response_fname = f['fname'] + '.response'
+    with io.open(response_fname, 'wt') as f:
+        f.write(json.dumps(response))
+
+
 def send_all_solutions(tag):
     filtered = filter_solutions(tag)
-    for f in filtered:
-        send_solution_logged(f['set_id'], f['fname'])
+    for sol in filtered:
+        best = get_best_solution(sol['set_id'])
+        if (best is not None) and (best['response']['resemblance'] == 1):
+            print('Problem %d is already solved perfectly by %s'
+                  % (sol['set_id'], best['tag']))
+        else:
+            send_solution_and_save_response(sol)
 
 
 def solve_problem(executable, p, iters = None):
