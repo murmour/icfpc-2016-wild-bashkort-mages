@@ -16,7 +16,7 @@ type line = { a: num; b: num; c: num }
 
 type area = num
 
-type line_relation = Exact | Above | Below
+type orientation = Zero | Positive | Negative
 
 type pythagorean = { sin: num; cos: num }
 
@@ -32,14 +32,14 @@ let compare_vertex (x1, y1) (x2, y2) =
     | etc ->
         etc
 
-let equal_vertexes v1 v2 =
+let equal_vertices v1 v2 =
   compare_vertex v1 v2 = 0
 
 let print_vertex (x, y) =
   Printf.sprintf "%s,%s" (string_of_num x) (string_of_num y)
 
 let triple_orientation (ox, oy) (ax, ay) (bx, by) : [ `CW | `CCW | `COLL ] =
-  let res = compare_num ((ax - ox) * (by - oy)) ((ay - oy) * (bx - ox)) in
+  let res = compare_num ((ax - ox)*(by - oy)) ((ay - oy)*(bx - ox)) in
   if res = 0 then
     `COLL
   else if res < 0 then
@@ -47,30 +47,37 @@ let triple_orientation (ox, oy) (ax, ay) (bx, by) : [ `CW | `CCW | `COLL ] =
   else
     `CCW
 
+(* Алгоритм Андрея :) *)
 let convex_hull points : polygon =
-  let sorted = List.sort compare_vertex points in
-  let rsorted = List.rev sorted in
-  let drop_first l = match l with [] -> [] | h :: t -> t in
 
-  let rec clean x l =
-    match l with
-      | a :: (b :: _ as rest) when triple_orientation b a x <> `CCW ->
-          clean x rest
-      | _ ->
-          l
+  let build_arc l =
+    l |> ListLabels.fold_right ~init:[] ~f:(fun x acc ->
+      let rec filter acc' =
+        match acc' with
+          | a :: (b :: _ as rest) when triple_orientation b a x <> `CCW ->
+              filter rest
+          | _ ->
+              acc'
+      in
+      x :: filter acc)
   in
 
-  let part_hull pts = List.fold_right (fun x acc -> x :: (clean x acc)) pts [] in
-  let lower = part_hull sorted in
-  let upper = part_hull rsorted in
-
-  (List.rev (drop_first lower)) @ (List.rev upper)
+  let sorted = List.sort compare_vertex points in
+  let rsorted = List.rev sorted in
+  let lower = build_arc sorted in
+  let upper = build_arc rsorted in
+  let drop_first l = match l with [] -> [] | h :: t -> t in
+  let h = ((List.rev (drop_first lower)) @ (List.rev upper)) in
+  match h with
+    | [] -> []
+    | [ v ] -> h
+    | v :: vs -> vs
 
 let vector_of_ints (x, y) : vector =
   (num_of_int x, num_of_int y)
 
-(* Precomputed table of exact pythagorean angles *)
-let for_each_angle action : unit =
+(* Precomputed table of exact pythagorean sines and cosines *)
+let pythagoreans =
   [
     ("1", "0");
     ("0", "1");
@@ -233,6 +240,9 @@ let for_each_angle action : unit =
     ("616/905", "663/905");
     ("696/985", "697/985");
   ]
+
+let for_each_angle action : unit =
+  pythagoreans
   |> List.sort (fun (sin1, cos1) (sin2, cos2) ->
       let open Pervasives in
       compare
@@ -293,8 +303,8 @@ let apply_vertex_offset (off: fit_offset) (v: vertex) : vertex =
 let flip_vertex (l: line) ((x, y): vertex) : vertex =
   let d = l.a*x + l.b*y + l.c in
   let ab2 = l.a*l.a + l.b*l.b in
-  let x' = x + num_neg2 * ((l.a*d)/ab2) in
-  let y' = y + num_neg2 * ((l.b*d)/ab2) in
+  let x' = x + num_neg2*((l.a*d)/ab2) in
+  let y' = y + num_neg2*((l.b*d)/ab2) in
   (x', y')
 
 let flip_poly (l: line) p =
@@ -315,13 +325,23 @@ let cross ((ax, ay): vector) ((bx, by): vector) : num =
 let vec ((ax, ay): vertex) ((bx, by): vertex) =
   (bx - ax, by - ay)
 
+let poly_edges (p: polygon) : segment list =
+  let rotate list =
+    match list with
+      | [] ->
+          []
+      | x :: xs ->
+          xs @ [ x ]
+  in
+  List.combine p (rotate p)
+
 let poly_area (p: polygon) : area =
   let sum = ref num_0 in
-  List.combine p (rotate p) |> List.iter (fun (v1, v2) ->
+  poly_edges p |> List.iter (fun (v1, v2) ->
     sum := !sum + cross v1 v2);
   num_1_by_2 * !sum
 
-let hull_area (h: polygon) : area =
+let absolute_poly_area (h: polygon) : area =
   abs_num (poly_area h)
 
 let hulls_are_equal (p1: polygon) (p2: polygon) : bool =
@@ -331,26 +351,29 @@ let hulls_are_equal (p1: polygon) (p2: polygon) : bool =
     | (_, []) | ([], _) ->
         false
     | (v1 :: v1s, v2 :: v2s) ->
-        if equal_vertexes v1 v2 then iter (v1s, v2s) else false
+        if equal_vertices v1 v2 then iter (v1s, v2s) else false
   in
   iter (p1, p2)
 
-let line_vertex_relation (l: line) ((x, y): vertex) : line_relation =
+let line_vertex_orientation (l: line) ((x, y): vertex) : orientation =
   let res = compare_num (l.a*x + l.b*y + l.c) num_0 in
   if res < 0 then
-    Below
+    Negative
   else if res > 0 then
-    Above
+    Positive
   else
-    Exact
+    Zero
 
 let segment_intersection (s1: segment) (s2: segment) : vertex option =
   let (a, b) = s1 and (c, d) = s2 in
   let (ax, ay) = a and (bx, by) = b and (cx, cy) = c and (dx, dy) = d in
-  if not ((gt_num (cross (vec c b) (vec c d) *
-                   cross (vec c d) (vec c a)) num_0) &&
-          (gt_num (cross (vec a c) (vec a b) *
-                   cross (vec a b) (vec a d)) num_0)) then
+  let lines_intersect =
+    (gt_num (cross (vec c b) (vec c d) *
+             cross (vec c d) (vec c a)) num_0) &&
+    (gt_num (cross (vec a c) (vec a b) *
+             cross (vec a b) (vec a d)) num_0)
+  in
+  if not lines_intersect then
     None
   else
     let dt = (bx - ax)*(cy - dy) - (cx - dx)*(by - ay) in
@@ -362,7 +385,7 @@ let segment_intersection (s1: segment) (s2: segment) : vertex option =
 let triangulate_hull (h: polygon) : triangle list =
   collect (fun push ->
     match h with
-      | skipped :: v1 :: rest ->
+      | v1 :: rest ->
           let rec iter = function
             | v2 :: ((v3 :: _) as rest) ->
                 push (v1, v2, v3);
@@ -395,10 +418,9 @@ let point_in_triangle ((a, b, c): triangle) (v: vertex) : bool =
     (b1 = b2) && (b2 = b3)
 
 let get_hull_inter_points (h1: polygon) (h2: polygon) : vertex list =
-  let h1 = List.tl h1 and h2 = List.tl h2 in
   collect (fun push ->
-    List.combine h1 (rotate h1) |> List.iter (fun seg1 ->
-      List.combine h2 (rotate h2) |> List.iter (fun seg2 ->
+    poly_edges h1 |> List.iter (fun seg1 ->
+      poly_edges h2 |> List.iter (fun seg2 ->
         segment_intersection seg1 seg2 |> Option.may push)))
 
 let intersect_hulls h1 h2 : polygon option =
@@ -410,7 +432,7 @@ let intersect_hulls h1 h2 : polygon option =
     set2 |> List.exists (fun t -> point_in_triangle t v))
   in
   let h3 = convex_hull h3 in
-  if hull_area h3 =/ num_0 then
+  if absolute_poly_area h3 =/ num_0 then
     None
   else
     Some h3
@@ -432,21 +454,20 @@ let point_on_line ((x, y): vertex) (l: line) : bool =
 let line_hull_intersection (l: line) (h: polygon) =
   let seg1 = gen_huge_segment l in
   collect (fun push ->
-    let h = List.tl h in
-    List.combine h (rotate h) |> List.iter (fun ((v3, v4) as seg2) ->
+    poly_edges h |> List.iter (fun ((v3, v4) as seg2) ->
       if point_on_line v3 l then
         push (`Existing v3)
       else
         segment_intersection seg1 seg2 |> Option.may (fun v ->
           push (`New v))))
 
-let polymorphic_segments ((v1, v2): segment) ((v3, v4): segment) : bool =
-  (equal_vertexes v1 v3 && equal_vertexes v2 v4) ||
-  (equal_vertexes v1 v4 && equal_vertexes v2 v3)
+let segments_equal ((v1, v2): segment) ((v3, v4): segment) : bool =
+  (equal_vertices v1 v3 && equal_vertices v2 v4) ||
+  (equal_vertices v1 v4 && equal_vertices v2 v3)
 
 let is_poly_edge (p: polygon) (s: segment) : bool =
   Return.label (fun l ->
-    List.combine p (rotate p) |> List.iter (fun s' ->
-      if polymorphic_segments s s' then
+    poly_edges p |> List.iter (fun s' ->
+      if segments_equal s s' then
         Return.return l true);
     false)

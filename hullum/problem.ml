@@ -1,4 +1,5 @@
 
+module S = Scanf
 open Batteries
 
 
@@ -8,7 +9,7 @@ and skeleton = Geometry.segment list
 
 
 let read_file ~fname : t =
-  let cin = Q.Scanf.Scanning.open_in fname in
+  let cin = S.Scanning.open_in fname in
   let scan_int () = Scanf.bscanf cin "%d " identity in
 
   let scan_vertex () : Geometry.vertex =

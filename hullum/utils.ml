@@ -21,10 +21,3 @@ let collect action =
   let list = ref [] in
   action (fun item -> list := item :: !list);
   List.rev !list
-
-let rotate list =
-  match list with
-    | [] ->
-        []
-    | x :: xs ->
-        xs @ [ x ]

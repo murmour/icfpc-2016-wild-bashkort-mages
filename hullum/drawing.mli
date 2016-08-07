@@ -1,14 +1,15 @@
 
-val draw_skeleton: Problem.skeleton -> unit
+type shape =
+  | Line of Geometry.line
+  | Vertex of Geometry.vertex
+  | Poly of Geometry.polygon
+  | Tri of Geometry.triangle
+  | LineList of Geometry.line list
+  | VertexList of Geometry.vertex list
+  | PolyList of Geometry.polygon list
+  | TriList of Geometry.triangle list
 
-val draw_silhouette: Problem.silhouette -> unit
 
-val draw_poly: ?color: Graphics.color -> Geometry.polygon -> unit
+val enabled: bool ref
 
-val draw_line: Geometry.line -> unit
-
-val draw_line_and_two_vertexes: Geometry.line -> Geometry.vertex -> Geometry.vertex -> unit
-
-val draw_state: Geometry.polygon -> State.t -> unit
-
-val draw_poly_list: ?color: Graphics.color -> Geometry.polygon list -> unit
+val draw: (shape * Graphics.color) list -> unit

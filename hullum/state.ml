@@ -1,12 +1,13 @@
 
 open Utils
+open Batteries
 
 
 type t =
   {
     points: Geometry.vertex list;
     area: Geometry.area;
-    prev: (Geometry.line * Geometry.line_relation * t) option;
+    prev: (Geometry.line * Geometry.orientation * t) option;
   }
 
 
@@ -19,3 +20,22 @@ let default =
     area = num_1;
     prev = None;
   }
+
+
+let get_lines (st: t) =
+  collect (fun push ->
+    let rec iter (st: t) =
+      st.prev |> Option.may (fun (line, rel, st) ->
+        push line;
+        iter st)
+    in
+    iter st)
+
+let draw ~target (st: t) =
+  if !Drawing.enabled then
+    let open Drawing in
+    draw [
+      (Poly target, Graphics.green);
+      (Poly (Geometry.convex_hull st.points), Graphics.white);
+      (LineList (get_lines st), Graphics.red);
+    ]

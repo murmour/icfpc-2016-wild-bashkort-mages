@@ -1,1 +1,1 @@
-<**/*>: syntax(camlp4o), package(batteries, pa_comprehension, graphics, pa_qualified)
+<**/*>: package(batteries, graphics)

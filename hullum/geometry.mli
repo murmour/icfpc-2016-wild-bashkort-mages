@@ -11,7 +11,7 @@ type line = { a: Num.num; b: Num.num; c: Num.num }
 
 type area = Num.num
 
-type line_relation = Exact | Above | Below
+type orientation = Zero | Positive | Negative
 
 type fit_offset
 
@@ -20,7 +20,7 @@ type triangle = vertex * vertex * vertex
 
 val compare_vertex: vertex -> vertex -> int
 
-val equal_vertexes: vertex -> vertex -> bool
+val equal_vertices: vertex -> vertex -> bool
 
 val print_vertex: vertex -> string
 
@@ -40,13 +40,15 @@ val get_line_y_by_x: line -> Num.num -> Num.num
 
 val compute_line: vertex -> vertex -> line
 
-val hull_area: polygon -> area
+val poly_edges: polygon -> segment list
 
 val poly_area: polygon -> area
 
+val absolute_poly_area: polygon -> area
+
 val hulls_are_equal: polygon -> polygon -> bool
 
-val line_vertex_relation: line -> vertex -> line_relation
+val line_vertex_orientation: line -> vertex -> orientation
 
 val intersect_hulls: polygon -> polygon -> polygon option
 

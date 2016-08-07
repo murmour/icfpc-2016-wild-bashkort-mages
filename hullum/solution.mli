@@ -3,7 +3,7 @@ type facet = Geometry.polygon
 
 type t =
   {
-    vertexes: (Geometry.vertex * Geometry.vertex) list;
+    vertices: (Geometry.vertex * Geometry.vertex) list;
     facets: facet list;
   }
 

@@ -9,7 +9,7 @@ type facet = polygon
 
 type t =
   {
-    vertexes: (vertex * vertex) list;
+    vertices: (vertex * vertex) list;
     facets: facet list;
   }
 
@@ -26,7 +26,7 @@ module VMap = Map.Make (Vertex)
 let get_unflipped_facet (l: line) (st: State.t) (prev: State.t) : facet =
   let moved = collect (fun push ->
     st.points |> List.iter (fun v ->
-      if Geometry.line_vertex_relation l v = Exact then
+      if Geometry.line_vertex_orientation l v = Zero then
         push v);
     let set = VSet.of_list st.points in
     prev.points |> List.iter (fun v ->
@@ -48,10 +48,10 @@ let recover (st: State.t) (off: Geometry.fit_offset) : t =
       | [] ->
           v
       | (l, rel) :: ls ->
-          match Geometry.line_vertex_relation l v with
-            | Above when rel = Above ->
+          match Geometry.line_vertex_orientation l v with
+            | Positive when rel = Positive ->
                 flip_back ls (Geometry.flip_vertex l v)
-            | Below when rel = Below ->
+            | Negative when rel = Negative ->
                 flip_back ls (Geometry.flip_vertex l v)
             | _ ->
                 flip_back ls v
@@ -86,7 +86,7 @@ let recover (st: State.t) (off: Geometry.fit_offset) : t =
   in
   iter [] st;
 
-  let vertexes =
+  let vertices =
     let off' = Geometry.negate_offset off in
     let valid = !facets |> List.concat |> VSet.of_list in
     collect (fun push ->
@@ -95,12 +95,12 @@ let recover (st: State.t) (off: Geometry.fit_offset) : t =
            let vdest' = Geometry.apply_vertex_offset off' vdest in
            push (vsrc, vdest')))
   in
-  { vertexes; facets = !facets }
+  { vertices; facets = !facets }
 
 
 let print (sol: t) =
   let b = Buffer.create 1000 in
-  let (source, dest) = List.split sol.vertexes in
+  let (source, dest) = List.split sol.vertices in
 
   let print_vertex (x, y) =
     bprintf b "%s,%s\n" (Num.string_of_num x) (Num.string_of_num y) in
@@ -110,11 +110,10 @@ let print (sol: t) =
 
   bprintf b "%d\n" (List.length sol.facets);
   sol.facets |> List.iter (fun f ->
-    let f = List.tl f in
     bprintf b "%d " (List.length f);
     f |> List.iter (fun v ->
       let (i, _) = source |> List.findi (fun i v' ->
-        Geometry.equal_vertexes v v') in
+        Geometry.equal_vertices v v') in
       bprintf b "%d " i);
     bprintf b "\n");
 
