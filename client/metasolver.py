@@ -16,10 +16,10 @@ if __name__ == '__main__':
     for p in problems:
         if ensure_that_problem_is_unsolved(p['id']):
             if len(sys.argv) < 6:
-                sol = icfp_api.solve_problem(executable, p)
+                sol = solve_problem(executable, p)
             else:
                 iters = sys.argv[5]
-                sol = icfp_api.solve_problem(executable, p, iters)
+                sol = solve_problem(executable, p, iters)
             if sol != None:
                 sol_file = '../data/solutions/solution_%d_%s.out' % (p['id'], tag)
                 with io.open(sol_file, 'w') as h:
