@@ -157,6 +157,7 @@ def filter_solutions(tag):
     files.sort(key = lambda f: f['set_id'])
     return files
 
+
 def send_solution_logged(id, fname):
     response = send_solution(id, fname)
     if response is None:
@@ -169,6 +170,7 @@ def send_solution_logged(id, fname):
     with io.open(response_fname, 'wt') as f:
         f.write(json.dumps(response))
     return response
+
 
 def get_response(sol):
     fname = sol['fname'] + '.response'
@@ -218,9 +220,13 @@ def ensure_that_problem_is_unsolved(id):
 
 def ensure_that_solution_is_unsent(sol):
     r = get_response(sol)
-    if (r is not None) and r['ok']:
-        print('Solution for problem %d by %s is already sent (score: %f)'
-              % (sol['set_id'], sol['tag'], r['resemblance']))
+    if (r is not None):
+        if r['ok']:
+            print('Solution for problem %d by %s is already sent (score: %f)'
+                  % (sol['set_id'], sol['tag'], r['resemblance']))
+        else:
+            print('Solution for problem %d by %s is already sent (error: %s)'
+                  % (sol['set_id'], sol['tag'], r['error']))
         return False
     return True
 
