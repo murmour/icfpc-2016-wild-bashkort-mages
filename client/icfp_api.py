@@ -207,14 +207,19 @@ def send_solution_and_save_response(sol):
         f.write(json.dumps(response))
 
 
+def ensure_that_problem_is_unsolved(id):
+    best = get_best_solution(id)
+    if (best is not None) and (best['response']['resemblance'] == 1):
+        print('Problem %d is already solved perfectly by %s'
+              % (id, best['tag']))
+        return False
+    return True
+
+
 def send_all_solutions(tag):
     filtered = filter_solutions(tag)
     for sol in filtered:
-        best = get_best_solution(sol['set_id'])
-        if (best is not None) and (best['response']['resemblance'] == 1):
-            print('Problem %d is already solved perfectly by %s'
-                  % (sol['set_id'], best['tag']))
-        else:
+        if ensure_that_problem_is_unsolved(sol['set_id']):
             send_solution_and_save_response(sol)
 
 
