@@ -195,17 +195,20 @@ def trySolveIfExists(idx, send=False):
         return False
     return trySolve(idx, send)
 
+def cleanupBS(idx):
+    metafname = probdirname + '/%d.pm%d' % (idx, kBorderVersion)
+    pfname = probdirname + '/%d.p%d' % (idx, kBorderVersion)
+    if os.path.exists(metafname):
+        os.remove(metafname)
+    if os.path.exists(pfname):
+        os.remove(pfname)
+
 def isFailedInd(idx):
     if not problemExists(idx):
         return False
     ind_name = probdirname + '/%d.ind' % idx
     if not os.path.exists(ind_name):
-        metafname = probdirname + '/%d.pm%d' % (idx, kBorderVersion)
-        pfname = probdirname + '/%d.p%d' % (idx, kBorderVersion)
-        if os.path.exists(metafname):
-            os.remove(metafname)
-        if os.path.exists(pfname):
-            os.remove(pfname)
+        cleanupBS(idx)
         return True
     return False        
         
@@ -238,8 +241,26 @@ def update():
     print('Done!')
                 
 
+def isNotOkResponse(respfile):
+    with io.open(soldirname + '/' + respfile) as f:
+        j = json.loads(f.read())
+        return j['ok'] == False
+
+def findOkFalse():
+    test = re.compile(r'solution_(\d+)_oxyethylene_1\.out\.response')
+    fnames = [f for f in os.listdir(soldirname) if re.match(test, f)]    
+    res = []
+    for fn in fnames:
+        m = re.match(test, fn)
+        num = int(m.group(1))
+        if isNotOkResponse(fn):
+            res.append(num)
+    print(len(res))
+    return res
+
 def main():
-    #trySolveIfExists(372)
+    cleanupBS(524)
+    trySolveIfExists(524)
     #return
     #ids = [i for i in range(5000) if isBSCode(i, 3)]
     #for idx in ids:
@@ -248,7 +269,8 @@ def main():
     
     #print(len(ids))
     #return
-    print(getAllSolved())
+    #print(getAllSolved())
+    #print(findOkFalse())
     
     #update()
     #updateInd()
