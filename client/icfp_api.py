@@ -196,13 +196,13 @@ def get_best_solution(id):
 
 
 def send_solution_and_save_response(sol):
-    response = send_solution(f['set_id'], f['fname'])
+    response = send_solution(sol['set_id'], sol['fname'])
     if response is None:
         print('There was no response!')
         return
     print(response)
 
-    response_fname = f['fname'] + '.response'
+    response_fname = sol['fname'] + '.response'
     with io.open(response_fname, 'wt') as f:
         f.write(json.dumps(response))
 
