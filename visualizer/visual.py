@@ -290,10 +290,12 @@ class MoveViewer(QtGui.QMainWindow):
         else:
             self.solved_data = {}
         
-        print('%d problems' % len(self.idxs))
+        probs = len(self.idxs)
+        solved = len(self.solved_data)
+        print('%d problems, %d solved, %d remains' % (probs, solved, probs - solved))
         
         self.data_edit.clear()
-        self.data_edit.addItems(['Task %d' % i for i in self.idxs])        
+        self.data_edit.addItems(['%d' % i for i in self.idxs])        
         
         
     def loadFile(self, idx):
