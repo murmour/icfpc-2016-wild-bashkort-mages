@@ -38,7 +38,7 @@ val flip_vertex: line -> vertex -> vertex
 
 val get_line_y_by_x: line -> Num.num -> Num.num
 
-val compute_line: vertex -> vertex -> line
+val line_from_segment: segment -> line
 
 val poly_edges: polygon -> segment list
 

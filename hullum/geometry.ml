@@ -313,10 +313,10 @@ let flip_poly (l: line) p =
 let get_line_y_by_x (l: line) x =
   (minus_num (l.a*x) - l.c) / l.b
 
-let compute_line ((x1, y1): vertex) ((x2, y2): vertex) : line =
+let line_from_segment (((x1, y1), (x2, y2)): segment) : line =
   let a = y2 - y1 in
   let b = x1 - x2 in
-  let c = minus_num (a*x1) - b*y1 in
+  let c = minus_num (a*x1 + b*y1) in
   { a; b; c }
 
 let cross ((ax, ay): vector) ((bx, by): vector) : num =
@@ -364,23 +364,36 @@ let line_vertex_orientation (l: line) ((x, y): vertex) : orientation =
   else
     Zero
 
-let segment_intersection (s1: segment) (s2: segment) : vertex option =
-  let (a, b) = s1 and (c, d) = s2 in
-  let (ax, ay) = a and (bx, by) = b and (cx, cy) = c and (dx, dy) = d in
-  let lines_intersect =
-    (gt_num (cross (vec c b) (vec c d) *
-             cross (vec c d) (vec c a)) num_0) &&
-    (gt_num (cross (vec a c) (vec a b) *
-             cross (vec a b) (vec a d)) num_0)
-  in
-  if not lines_intersect then
+let line_intersection (l1: line) (l2: line) : vertex option =
+  let det = l1.a*l2.b - l2.a*l1.b in
+  if det =/ num_0 then
     None
   else
-    let dt = (bx - ax)*(cy - dy) - (cx - dx)*(by - ay) in
-    let t = (num_1 / dt) * ((cx - ax)*(cy - dy) - (cx - dx)*(cy - ay)) in
-    let x = ax + (bx - ax)*t in
-    let y = ay + (by - ay)*t in
+    let det' = num_1 / det in
+    let x = (l2.c*l1.b - l1.c*l2.b) * det' in
+    let y = (l2.a*l1.c - l1.a*l2.c) * det' in
     Some (x, y)
+
+let point_in_box ((x, y): vertex) (((x1, y1), (x2, y2)): segment) : bool =
+  not ((x </ x1 && x </ x2) || (x >/ x1 && x >/ x2) ||
+       (y </ y1 && y </ y2) || (y >/ y1 && y >/ y2))
+
+let segment_intersection (s1: segment) (s2: segment) : vertex option =
+  let l1 = line_from_segment s1 in
+  let l2 = line_from_segment s2 in
+  Option.bind (line_intersection l1 l2) (fun v ->
+     if point_in_box v s1 && point_in_box v s2 then
+       Some v
+     else
+       None)
+
+let segment_line_intersection (s: segment) (l: line) : vertex option =
+  let l2 = line_from_segment s in
+  Option.bind (line_intersection l l2) (fun v ->
+    if point_in_box v s then
+      Some v
+    else
+      None)
 
 let triangulate_hull (h: polygon) : triangle list =
   collect (fun push ->
@@ -399,17 +412,13 @@ let triangle_is_negative ((a, b, c): triangle) : bool =
   let (x1, y1) = a and (x2, y2) = b and (x3, y3) = c in
   lt_num ((x1 - x3)*(y2 - y3)) ((x2 - x3)*(y1 - y3))
 
-let point_on_segment ((ox, oy) as o) ((ax, ay) as a) ((bx, by) as b) =
-  if (ox </ ax && ox </ bx) || (ox >/ ax && ox >/ bx) ||
-     (oy </ ay && oy </ by) || (oy >/ ay && oy >/ by) then
-    false
-  else
-    cross (vec o a) (vec o b) =/ num_0
+let point_on_segment (v: vertex) (((v1, v2) as s): segment) =
+  point_in_box v s && cross (vec v v1) (vec v v2) =/ num_0
 
 let point_in_triangle ((a, b, c): triangle) (v: vertex) : bool =
-  if point_on_segment v a b ||
-     point_on_segment v b c ||
-     point_on_segment v a c then
+  if point_on_segment v (a, b) ||
+     point_on_segment v (b, c) ||
+     point_on_segment v (a, c) then
     true
   else
     let b1 = triangle_is_negative (v, a, b) in
@@ -432,33 +441,18 @@ let intersect_hulls h1 h2 : polygon option =
     set2 |> List.exists (fun t -> point_in_triangle t v))
   in
   let h3 = convex_hull h3 in
-  if absolute_poly_area h3 =/ num_0 then
+  if poly_area h3 =/ num_0 then
     None
   else
     Some h3
 
-let gen_huge_segment (l: line) : segment =
-  if l.a =/ num_0 then
-    let y0 = (minus_num l.c) / l.b in
-    ((num_neg2, y0), (num_2, y0))
-  else if l.b =/ num_0 then
-    let x0 = (minus_num l.c) / l.a in
-    ((x0, num_neg2), (x0, num_2))
-  else
-    ((num_neg2, get_line_y_by_x l num_neg2),
-     (num_2, get_line_y_by_x l num_2))
-
-let point_on_line ((x, y): vertex) (l: line) : bool =
-  l.a*x + l.b*y + l.c =/ num_0
-
 let line_hull_intersection (l: line) (h: polygon) =
-  let seg1 = gen_huge_segment l in
   collect (fun push ->
-    poly_edges h |> List.iter (fun ((v3, v4) as seg2) ->
-      if point_on_line v3 l then
-        push (`Existing v3)
+    poly_edges h |> List.iter (fun ((v1, v2) as seg) ->
+      if line_vertex_orientation l v1 = Zero then
+        push (`Existing v1)
       else
-        segment_intersection seg1 seg2 |> Option.may (fun v ->
+        segment_line_intersection seg l |> Option.may (fun v ->
           push (`New v))))
 
 let segments_equal ((v1, v2): segment) ((v3, v4): segment) : bool =

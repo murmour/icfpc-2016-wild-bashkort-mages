@@ -33,7 +33,7 @@ let gen_dissections ~dissections (st: State.t) hull target =
           begin
             let add_vertex (st: State.t) v =
               { st with points = v :: st.points } in
-            let line = Geometry.compute_line v1 v2 in
+            let line = Geometry.line_from_segment (v1, v2) in
             let st = if kind1 = `New then add_vertex st v1 else st in
             let st = if kind2 = `New then add_vertex st v2 else st in
             push (line, st)
@@ -81,10 +81,10 @@ let apply_approx_dissection ~dissections target (st: State.t) : State.t option =
   choose_best_dissection (ds1 @ ds2)
 
 let apply_exact_dissection target (st: State.t) : State.t option =
-  let hull = st.points |> Geometry.convex_hull in
+  let hull = Geometry.convex_hull st.points in
   let sects =
-    poly_edges target |> List.map (fun (v1, v2) ->
-      let line = Geometry.compute_line v1 v2 in
+    poly_edges target |> List.map (fun edge ->
+      let line = Geometry.line_from_segment edge in
       let inter = Geometry.line_hull_intersection line hull in
       let rec append_new = function
         | [] ->
