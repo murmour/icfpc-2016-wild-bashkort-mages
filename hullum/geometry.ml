@@ -38,14 +38,23 @@ let equal_vertices v1 v2 =
 let print_vertex (x, y) =
   Printf.sprintf "%s,%s" (string_of_num x) (string_of_num y)
 
-let triple_orientation (ox, oy) (ax, ay) (bx, by) : [ `CW | `CCW | `COLL ] =
-  let res = compare_num ((ax - ox)*(by - oy)) ((ay - oy)*(bx - ox)) in
+let vec ((ax, ay): vertex) ((bx, by): vertex) =
+  (bx - ax, by - ay)
+
+let cross ((ax, ay): vector) ((bx, by): vector) : num =
+  ax*by - ay*bx
+
+let cross_compare ((ax, ay): vector) ((bx, by): vector) : int =
+  compare_num (ax*by) (ay*bx)
+
+let triple_orientation o a b : orientation =
+  let res = cross_compare (vec o a) (vec o b) in
   if res = 0 then
-    `COLL
+    Zero
   else if res < 0 then
-    `CW
+    Negative
   else
-    `CCW
+    Positive
 
 (* Алгоритм Андрея :) *)
 let convex_hull points : polygon =
@@ -54,7 +63,7 @@ let convex_hull points : polygon =
     l |> ListLabels.fold_right ~init:[] ~f:(fun x acc ->
       let rec filter acc' =
         match acc' with
-          | a :: (b :: _ as rest) when triple_orientation b a x <> `CCW ->
+          | a :: (b :: _ as rest) when triple_orientation b a x <> Positive ->
               filter rest
           | _ ->
               acc'
@@ -319,12 +328,6 @@ let line_from_segment (((x1, y1), (x2, y2)): segment) : line =
   let c = minus_num (a*x1 + b*y1) in
   { a; b; c }
 
-let cross ((ax, ay): vector) ((bx, by): vector) : num =
-  ax*by - ay*bx
-
-let vec ((ax, ay): vertex) ((bx, by): vertex) =
-  (bx - ax, by - ay)
-
 let poly_edges (p: polygon) : segment list =
   let rotate list =
     match list with
@@ -408,23 +411,17 @@ let triangulate_hull (h: polygon) : triangle list =
           iter rest
       | _ -> ())
 
-let triangle_is_negative ((a, b, c): triangle) : bool =
-  let (x1, y1) = a and (x2, y2) = b and (x3, y3) = c in
-  lt_num ((x1 - x3)*(y2 - y3)) ((x2 - x3)*(y1 - y3))
+let point_on_segment (v0: vertex) (((v1, v2) as s): segment) =
+  point_in_box v0 s && (cross_compare (vec v0 v1) (vec v0 v2) = 0)
 
-let point_on_segment (v: vertex) (((v1, v2) as s): segment) =
-  point_in_box v s && cross (vec v v1) (vec v v2) =/ num_0
+let point_in_hull (h: polygon) (v: vertex) : bool =
+  poly_edges h
+  |> List.map (fun (v1, v2) -> triple_orientation v v1 v2)
+  |> List.filter ((<>) Zero)
+  |> items_equal
 
 let point_in_triangle ((a, b, c): triangle) (v: vertex) : bool =
-  if point_on_segment v (a, b) ||
-     point_on_segment v (b, c) ||
-     point_on_segment v (a, c) then
-    true
-  else
-    let b1 = triangle_is_negative (v, a, b) in
-    let b2 = triangle_is_negative (v, b, c) in
-    let b3 = triangle_is_negative (v, c, a) in
-    (b1 = b2) && (b2 = b3)
+  point_in_hull [ a; b; c ] v
 
 let get_hull_inter_points (h1: polygon) (h2: polygon) : vertex list =
   collect (fun push ->
