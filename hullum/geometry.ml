@@ -431,11 +431,8 @@ let get_hull_inter_points (h1: polygon) (h2: polygon) : vertex list =
 
 let intersect_hulls h1 h2 : polygon option =
   let inter_points = get_hull_inter_points h1 h2 in
-  let set1 = triangulate_hull h1 in
-  let set2 = triangulate_hull h2 in
   let h3 = h1 @ h2 @ inter_points |> List.filter (fun v ->
-    set1 |> List.exists (fun t -> point_in_triangle t v) &&
-    set2 |> List.exists (fun t -> point_in_triangle t v))
+    point_in_hull h1 v && point_in_hull h2 v)
   in
   let h3 = convex_hull h3 in
   if poly_area h3 =/ num_0 then
