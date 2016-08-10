@@ -72,18 +72,14 @@ let convex_hull points : polygon =
   in
 
   let sorted = List.sort compare_vertex points in
-  let rsorted = List.rev sorted in
-  let lower = build_arc sorted in
-  let upper = build_arc rsorted in
-  let drop_first l = match l with [] -> [] | h :: t -> t in
-  let h = ((List.rev (drop_first lower)) @ (List.rev upper)) in
-  match h with
-    | [] -> []
-    | [ v ] -> h
-    | v :: vs -> vs
+  match (build_arc sorted, build_arc (List.rev sorted)) with
+    | ([], _) | (_, []) ->
+        []
+    | ([ x ], _) | (_, [ x ]) ->
+        [ x ]
+    | (x :: xs, y :: ys) ->
+        List.rev xs @ List.rev ys
 
-let vector_of_ints (x, y) : vector =
-  (num_of_int x, num_of_int y)
 
 (* Precomputed table of exact pythagorean sines and cosines *)
 let pythagoreans =
