@@ -66,16 +66,19 @@ let () =
       if s1.area </ s2.area then s1 else s2
   in
 
-  if best.area =/ hull_area then
-    (if hull_area =/ sl_area then
-       Printf.eprintf "Got exact solution!\n%!"
-     else
-       Printf.eprintf "Got best possible convex solution!\n%!");
+  let resemblance = sl_area / best.area in
+  if resemblance =/ num_1 then
+    Printf.eprintf "Got exact solution!\n%!"
+  else if best.area =/ hull_area then
+    Printf.eprintf "Got best possible convex solution! (resemblance %f)\n%!"
+      (Num.float_of_num resemblance)
+  else
+    Printf.eprintf "Got inexact solution! (resemblance %f)\n%!"
+      (Num.float_of_num resemblance);
 
-  if !exact_only && (best.area <>/ hull_area) then
-    failwith (Printf.sprintf "Got inexact solution! (area = %s of %s)"
-                (string_of_num best.area)
-                (string_of_num hull_area));
+  if !exact_only && resemblance <>/ num_1 then
+    failwith (Printf.sprintf "Got inexact solution! (resemblance %f)"
+                (Num.float_of_num resemblance));
 
   let sol = Solution.recover best offset in
   Drawing.draw [ (PolyList sol.facets, Graphics.white) ];
