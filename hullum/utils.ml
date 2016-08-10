@@ -21,3 +21,10 @@ let collect action =
   let list = ref [] in
   action (fun item -> list := item :: !list);
   List.rev !list
+
+let items_equal list =
+  match list with
+    | [] ->
+        true
+    | x :: xs ->
+        List.for_all ((=) x) xs

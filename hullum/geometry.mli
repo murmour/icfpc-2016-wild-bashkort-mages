@@ -58,3 +58,5 @@ val line_hull_intersection: line -> polygon ->
   [ `New of vertex | `Existing of vertex ] list
 
 val is_poly_edge: polygon -> segment -> bool
+
+val line_intersects_hull: line -> polygon -> bool

@@ -455,6 +455,12 @@ let line_hull_intersection (l: line) (h: polygon) =
         segment_line_intersection seg l |> Option.may (fun v ->
           push (`New v))))
 
+let line_intersects_hull (l: line) (h: polygon) =
+  List.map (line_vertex_orientation l) h
+  |> List.filter ((<>) Zero)
+  |> items_equal
+  |> not
+
 let segments_equal ((v1, v2): segment) ((v3, v4): segment) : bool =
   (equal_vertices v1 v3 && equal_vertices v2 v4) ||
   (equal_vertices v1 v4 && equal_vertices v2 v3)

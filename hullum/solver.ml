@@ -51,18 +51,16 @@ let apply_dissection target hull_old (dir: Geometry.orientation)
   in
   if not !flipped_at_least_one then
     None
+  else if Geometry.line_intersects_hull l target then
+    None
   else
-    let hull_new = Geometry.convex_hull points in
-    let hull_union = Geometry.convex_hull (hull_old @ hull_new) in
+    let hull_union = Geometry.convex_hull (hull_old @ points) in
     if not (Geometry.hulls_are_equal hull_union hull_old) then
       None
     else
-      let hull_union = Geometry.convex_hull (hull_new @ target) in
-      if not (Geometry.hulls_are_equal hull_union hull_new) then
-        None
-      else
-        let area = Geometry.absolute_poly_area hull_new in
-        Some ({ points; area; prev = Some (l, dir, st) })
+      let hull_new = Geometry.convex_hull points in
+      let area = Geometry.absolute_poly_area hull_new in
+      Some ({ points; area; prev = Some (l, dir, st) })
 
 let choose_best_dissection forks : State.t option =
   let best = ref None in
