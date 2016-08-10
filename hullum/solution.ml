@@ -35,6 +35,12 @@ let get_unflipped_facet (l: line) (st: State.t) (prev: State.t) : facet =
   in
   Geometry.convex_hull moved
 
+let flip_back_vertex lines v : vertex =
+  let v = ref v in
+  lines |> List.iter (fun l ->
+    if Geometry.line_vertex_orientation l !v = Positive then
+      v := Geometry.flip_vertex l !v);
+  !v
 
 let recover (st: State.t) (off: Geometry.fit_offset) : t =
   let facets = ref [ Geometry.convex_hull st.points ] in
@@ -43,30 +49,19 @@ let recover (st: State.t) (off: Geometry.fit_offset) : t =
   st.points |> List.iter (fun v ->
     vmap := VMap.add v v !vmap);
 
-  let rec flip_back lines v =
-    let v = ref v in
-    lines |> List.iter (fun l ->
-      if Geometry.line_vertex_orientation l !v = Positive then
-        v := Geometry.flip_vertex l !v);
-    !v
-  in
-
-  let add_flipped_facet (l: line) line_acc f =
-    let f =
-      f |> List.map (fun v ->
+  let calc_flipped_facet (l: line) back_lines f : facet =
+    f |> List.map (fun v ->
+      let v' = Geometry.flip_vertex l v in
+      begin
         match VMap.Exceptionless.find v !vmap with
           | Some vdest ->
-              let v' = Geometry.flip_vertex l v in
               vmap := VMap.add v' vdest !vmap;
-              v'
           | None ->
-              let vdest = flip_back line_acc v in
+              let vdest = flip_back_vertex back_lines v in
               vmap := VMap.add v vdest !vmap;
-              let v' = Geometry.flip_vertex l v in
-              vmap := VMap.add v' vdest !vmap;
-              v')
-    in
-    facets := f :: !facets
+              vmap := VMap.add v' vdest !vmap
+      end;
+      v')
   in
 
   let rec iter line_acc (st: State.t) =
@@ -75,7 +70,8 @@ let recover (st: State.t) (off: Geometry.fit_offset) : t =
       let f1' = flip_poly line f1 in
       !facets |> List.iter (fun f2 ->
         Geometry.intersect_hulls f1' f2 |> Option.may (fun f3 ->
-          add_flipped_facet line line_acc f3));
+          let f = calc_flipped_facet line line_acc f3 in
+          facets := f :: !facets));
       iter (line :: line_acc) st_prev)
   in
   iter [] st;
@@ -90,7 +86,6 @@ let recover (st: State.t) (off: Geometry.fit_offset) : t =
            push (vsrc, vdest')))
   in
   { vertices; facets = !facets }
-
 
 let print (sol: t) =
   let b = Buffer.create 1000 in
@@ -114,7 +109,6 @@ let print (sol: t) =
   dest |> List.iter print_vertex;
 
   Buffer.contents b
-
 
 let size (sol: t) : int =
   let s = print sol in

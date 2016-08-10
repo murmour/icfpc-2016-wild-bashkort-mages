@@ -19,7 +19,6 @@ type shape =
 let width = 800
 let height = 800
 
-
 let enabled =
   ref false
 

@@ -58,7 +58,6 @@ let triple_orientation o a b : orientation =
 
 (* Алгоритм Андрея :) *)
 let convex_hull points : polygon =
-
   let build_arc l =
     l |> ListLabels.fold_right ~init:[] ~f:(fun x acc ->
       let rec filter acc' =
@@ -70,7 +69,6 @@ let convex_hull points : polygon =
       in
       x :: filter acc)
   in
-
   let sorted = List.sort compare_vertex points in
   match (build_arc sorted, build_arc (List.rev sorted)) with
     | ([], _) | (_, []) ->
@@ -79,7 +77,6 @@ let convex_hull points : polygon =
         [ x ]
     | (x :: xs, y :: ys) ->
         List.rev xs @ List.rev ys
-
 
 (* Precomputed table of exact pythagorean sines and cosines *)
 let pythagoreans =
@@ -246,20 +243,21 @@ let pythagoreans =
     ("696/985", "697/985");
   ]
 
-let for_each_angle action : unit =
-  pythagoreans
-  |> List.sort (fun (sin1, cos1) (sin2, cos2) ->
-      let open Pervasives in
-      compare
-        (String.length sin1 + String.length cos1)
-        (String.length sin2 + String.length cos2))
-  |> List.iter (fun (sin, cos) ->
-      let sin = num_of_string sin in
-      let cos = num_of_string cos in
-      action { sin; cos };
-      action { sin; cos = minus_num cos };
-      action { sin = minus_num sin; cos };
-      action { sin = minus_num sin; cos = minus_num cos })
+let sorted_pythagoreans: pythagorean list =
+  collect (fun push ->
+    pythagoreans
+    |> List.sort (fun (sin1, cos1) (sin2, cos2) ->
+        let open Pervasives in
+        compare
+          (String.length sin1 + String.length cos1)
+          (String.length sin2 + String.length cos2))
+    |> List.iter (fun (sin, cos) ->
+        let sin = num_of_string sin in
+        let cos = num_of_string cos in
+        push { sin; cos };
+        push { sin; cos = minus_num cos };
+        push { sin = minus_num sin; cos };
+        push { sin = minus_num sin; cos = minus_num cos }))
 
 let apply_vertex_angle (angle: pythagorean) ((x, y): vertex) =
   let x' = angle.cos * x - angle.sin * y in
@@ -288,7 +286,7 @@ let gen_poly_shift p : vector =
 
 let fit_poly p : (polygon * fit_offset) option =
   Return.label (fun l ->
-    for_each_angle (fun (angle: pythagorean) ->
+    sorted_pythagoreans |> List.iter (fun (angle: pythagorean) ->
       let p = apply_poly_angle angle p in
       let shift = gen_poly_shift p in
       let p = apply_poly_shift shift p in

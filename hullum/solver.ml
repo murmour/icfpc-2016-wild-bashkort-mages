@@ -8,33 +8,34 @@ open Geometry
 let max_solution_size = 5000
 
 
+let gen_vertices ~dissections hull target
+  : ([ `New | `Existing ] * vertex) list =
+  collect (fun push ->
+    poly_edges hull |> List.iter (fun (((x1, y1), (x2, y2)) as edge) ->
+      if not (Geometry.is_poly_edge target edge) then
+        let dissections = num_of_int dissections in
+        let slope_x = (x2 - x1) / dissections in
+        let slope_y = (y2 - y1) / dissections in
+        push (`Existing, (x1, y1));
+        let x0 = ref (x1 + slope_x) in
+        let y0 = ref (y1 + slope_y) in
+        while !x0 <>/ x2 || !y0 <>/ y2 do
+          push (`New, (!x0, !y0));
+          x0 := !x0 + slope_x;
+          y0 := !y0 + slope_y;
+        done))
+
 let gen_dissections ~dissections (st: State.t) hull target =
-  let vertices =
-    collect (fun push ->
-      poly_edges hull |> List.iter (fun (((x1, y1), (x2, y2)) as edge) ->
-         if not (Geometry.is_poly_edge target edge) then
-           let dissections = num_of_int dissections in
-           let slope_x = (x2 - x1) / dissections in
-           let slope_y = (y2 - y1) / dissections in
-           push (`Existing, (x1, y1));
-           let x0 = ref (x1 + slope_x) in
-           let y0 = ref (y1 + slope_y) in
-           while !x0 <>/ x2 || !y0 <>/ y2 do
-             push (`New, (!x0, !y0));
-             x0 := !x0 + slope_x;
-             y0 := !y0 + slope_y;
-           done))
-  in
+  let vertices = gen_vertices ~dissections hull target in
   collect (fun push ->
     vertices |> List.iter (fun (kind1, v1) ->
       vertices |> List.iter (fun (kind2, v2) ->
         if v1 != v2 then
-          let add_vertex (st: State.t) v =
-            { st with points = v :: st.points } in
-          let st = if kind1 = `New then add_vertex st v1 else st in
-          let st = if kind2 = `New then add_vertex st v2 else st in
+          let pts = ref st.points in
+          if kind1 = `New then pts := v1 :: !pts;
+          if kind2 = `New then pts := v2 :: !pts;
           let line = Geometry.line_from_segment (v1, v2) in
-          push (line, st))))
+          push (line, { st with points = !pts }))))
 
 let apply_dissection target hull_old
     ((l: line), (st: State.t)) : State.t option =
@@ -79,17 +80,12 @@ let apply_exact_dissection target (st: State.t) : State.t option =
   let sects =
     poly_edges target |> List.map (fun edge ->
       let line = Geometry.line_from_segment edge in
-      let inter = Geometry.line_hull_intersection line hull in
-      let rec append_new = function
-        | [] ->
-            st
-        | `New v :: vs ->
-            let st = append_new vs in
-            { st with points = v :: st.points }
-        | `Existing v :: vs ->
-            append_new vs
-      in
-      (line, append_new inter))
+      let pts = ref st.points in
+      Geometry.line_hull_intersection line hull |> List.iter (function
+        | `New v ->
+            pts := v :: !pts
+        | `Existing _ -> ());
+      (line, { st with points = !pts }))
   in
   sects
   |> List.filter_map (apply_dissection target hull)
