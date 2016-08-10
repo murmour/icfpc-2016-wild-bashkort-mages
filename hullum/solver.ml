@@ -11,9 +11,8 @@ let max_solution_size = 5000
 let gen_dissections ~dissections (st: State.t) hull target =
   let vertices =
     collect (fun push ->
-      poly_edges hull |> List.iter (fun ((v1, v2) as edge) ->
+      poly_edges hull |> List.iter (fun (((x1, y1), (x2, y2)) as edge) ->
          if not (Geometry.is_poly_edge target edge) then
-           let (x1, y1) = v1 and (x2, y2) = v2 in
            let dissections = num_of_int dissections in
            let slope_x = (x2 - x1) / dissections in
            let slope_y = (y2 - y1) / dissections in
@@ -29,38 +28,36 @@ let gen_dissections ~dissections (st: State.t) hull target =
   collect (fun push ->
     vertices |> List.iter (fun (kind1, v1) ->
       vertices |> List.iter (fun (kind2, v2) ->
-        if Geometry.compare_vertex v1 v2 > 0 then
-          begin
-            let add_vertex (st: State.t) v =
-              { st with points = v :: st.points } in
-            let line = Geometry.line_from_segment (v1, v2) in
-            let st = if kind1 = `New then add_vertex st v1 else st in
-            let st = if kind2 = `New then add_vertex st v2 else st in
-            push (line, st)
-          end)))
+        if v1 != v2 then
+          let add_vertex (st: State.t) v =
+            { st with points = v :: st.points } in
+          let st = if kind1 = `New then add_vertex st v1 else st in
+          let st = if kind2 = `New then add_vertex st v2 else st in
+          let line = Geometry.line_from_segment (v1, v2) in
+          push (line, st))))
 
-let apply_dissection target hull_old (dir: Geometry.orientation)
+let apply_dissection target hull_old
     ((l: line), (st: State.t)) : State.t option =
   let flipped_at_least_one = ref false in
   let points = st.points |> List.map (fun v ->
-    if Geometry.line_vertex_orientation l v <> dir then
-      v
-    else
+    if Geometry.line_vertex_orientation l v = Positive then
       (flipped_at_least_one := true;
-       Geometry.flip_vertex l v))
+       Geometry.flip_vertex l v)
+    else
+      v)
   in
   if not !flipped_at_least_one then
     None
-  else if Geometry.line_intersects_hull l target then
+  else if Geometry.line_hull_orientation l target <> Negative then
     None
   else
     let hull_union = Geometry.convex_hull (hull_old @ points) in
-    if not (Geometry.hulls_are_equal hull_union hull_old) then
+    if not (Geometry.hulls_equal hull_union hull_old) then
       None
     else
       let hull_new = Geometry.convex_hull points in
       let area = Geometry.absolute_poly_area hull_new in
-      Some ({ points; area; prev = Some (l, dir, st) })
+      Some ({ points; area; prev = Some (l, st) })
 
 let choose_best_dissection forks : State.t option =
   let best = ref None in
@@ -73,10 +70,9 @@ let choose_best_dissection forks : State.t option =
 
 let apply_approx_dissection ~dissections target (st: State.t) : State.t option =
   let hull = Geometry.convex_hull st.points in
-  let sects = gen_dissections ~dissections st hull target in
-  let ds1 = sects |> List.filter_map (apply_dissection target hull Positive) in
-  let ds2 = sects |> List.filter_map (apply_dissection target hull Negative) in
-  choose_best_dissection (ds1 @ ds2)
+  gen_dissections ~dissections st hull target
+  |> List.filter_map (apply_dissection target hull)
+  |> choose_best_dissection
 
 let apply_exact_dissection target (st: State.t) : State.t option =
   let hull = Geometry.convex_hull st.points in
@@ -95,9 +91,9 @@ let apply_exact_dissection target (st: State.t) : State.t option =
       in
       (line, append_new inter))
   in
-  let ds1 = sects |> List.filter_map (apply_dissection target hull Positive) in
-  let ds2 = sects |> List.filter_map (apply_dissection target hull Negative) in
-  choose_best_dissection (ds1 @ ds2)
+  sects
+  |> List.filter_map (apply_dissection target hull)
+  |> choose_best_dissection
 
 let validate_size ~offset (st: State.t) : bool =
   let sol = Solution.recover st offset in

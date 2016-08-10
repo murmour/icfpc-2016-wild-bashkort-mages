@@ -46,7 +46,7 @@ val poly_area: polygon -> area
 
 val absolute_poly_area: polygon -> area
 
-val hulls_are_equal: polygon -> polygon -> bool
+val hulls_equal: polygon -> polygon -> bool
 
 val line_vertex_orientation: line -> vertex -> orientation
 
@@ -60,3 +60,5 @@ val line_hull_intersection: line -> polygon ->
 val is_poly_edge: polygon -> segment -> bool
 
 val line_intersects_hull: line -> polygon -> bool
+
+val line_hull_orientation: line -> polygon -> orientation

@@ -7,7 +7,7 @@ type t =
   {
     points: Geometry.vertex list;
     area: Geometry.area;
-    prev: (Geometry.line * Geometry.orientation * t) option;
+    prev: (Geometry.line * t) option;
   }
 
 
@@ -25,7 +25,7 @@ let default =
 let get_lines (st: t) =
   collect (fun push ->
     let rec iter (st: t) =
-      st.prev |> Option.may (fun (line, rel, st) ->
+      st.prev |> Option.may (fun (line, st) ->
         push line;
         iter st)
     in

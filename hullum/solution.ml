@@ -44,17 +44,11 @@ let recover (st: State.t) (off: Geometry.fit_offset) : t =
     vmap := VMap.add v v !vmap);
 
   let rec flip_back lines v =
-    match lines with
-      | [] ->
-          v
-      | (l, rel) :: ls ->
-          match Geometry.line_vertex_orientation l v with
-            | Positive when rel = Positive ->
-                flip_back ls (Geometry.flip_vertex l v)
-            | Negative when rel = Negative ->
-                flip_back ls (Geometry.flip_vertex l v)
-            | _ ->
-                flip_back ls v
+    let v = ref v in
+    lines |> List.iter (fun l ->
+      if Geometry.line_vertex_orientation l !v = Positive then
+        v := Geometry.flip_vertex l !v);
+    !v
   in
 
   let add_flipped_facet (l: line) line_acc f =
@@ -76,13 +70,13 @@ let recover (st: State.t) (off: Geometry.fit_offset) : t =
   in
 
   let rec iter line_acc (st: State.t) =
-    st.prev |> Option.may (fun (line, rel, st_prev) ->
+    st.prev |> Option.may (fun (line, st_prev) ->
       let f1 = get_unflipped_facet line st st_prev in
       let f1' = flip_poly line f1 in
       !facets |> List.iter (fun f2 ->
         Geometry.intersect_hulls f1' f2 |> Option.may (fun f3 ->
           add_flipped_facet line line_acc f3));
-      iter ((line, rel) :: line_acc) st_prev)
+      iter (line :: line_acc) st_prev)
   in
   iter [] st;
 

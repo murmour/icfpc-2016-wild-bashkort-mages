@@ -343,7 +343,7 @@ let poly_area (p: polygon) : area =
 let absolute_poly_area (h: polygon) : area =
   abs_num (poly_area h)
 
-let hulls_are_equal (p1: polygon) (p2: polygon) : bool =
+let hulls_equal (p1: polygon) (p2: polygon) : bool =
   let rec iter = function
     | ([], []) ->
         true
@@ -445,11 +445,21 @@ let line_hull_intersection (l: line) (h: polygon) =
         segment_line_intersection seg l |> Option.may (fun v ->
           push (`New v))))
 
+let line_hull_orientation (l: line) (h: polygon) =
+  let orients =
+    List.map (line_vertex_orientation l) h
+    |> List.filter ((<>) Zero)
+  in
+  match orients with
+    | Positive :: xs when List.for_all ((=) Positive) xs ->
+        Positive
+    | Negative :: xs when List.for_all ((=) Negative) xs ->
+        Negative
+    | _ ->
+        Zero
+
 let line_intersects_hull (l: line) (h: polygon) =
-  List.map (line_vertex_orientation l) h
-  |> List.filter ((<>) Zero)
-  |> items_equal
-  |> not
+  line_hull_orientation l h = Zero
 
 let segments_equal ((v1, v2): segment) ((v3, v4): segment) : bool =
   (equal_vertices v1 v3 && equal_vertices v2 v4) ||
