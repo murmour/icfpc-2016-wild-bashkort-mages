@@ -84,7 +84,7 @@ HELMETSOLVER is a hard-coded solver for the set of "helmet-shaped" problems by
 
 PLANESOLVER is a hard-coded solver for the set of "airplane" problems by
 天羽々斬. We're still scared of their unpronounceable name and hope that it
-means something harmless, like "beef-flavored ramen".
+means something harmless, like "beef-flavored ramen" ("говяжий доширак").
 
 RECTANGLE is the generator for the ill-fated problems that we submitted and that
 have earned us an inordinately small amount of points because the idea of
